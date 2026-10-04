@@ -419,7 +419,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261004-210349"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261004-213532"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -728,6 +728,7 @@ async function load(){
     res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
     renderMap(); renderUfDetail(); renderTable();
     renderEnv(); // limpa um aviso de falha anterior
+    state.lidoEm = Date.now();
   }catch(err){
     $("envPill").className="pill err";
     $("envPill").innerHTML=`<span class="dot"></span>Falha ao ler o TSE`;
@@ -1169,6 +1170,7 @@ async function loadGO(){
     }
     goNotice(null);
     renderGO();
+    state.lidoEm = Date.now();
   }catch(err){
     goNotice(`Erro ao ler os dados ${deUF(GO.uf)} (${esc(err.message)}). Tentando de novo.`);
   }finally{ loadingGO=false; if(uf!==GO.uf && state.view===GO.uf) loadGO(); }
@@ -1388,17 +1390,25 @@ async function checagemRapida(){
   }catch{} finally{ checando = false; }
 }
 function tick(){
-  const falta = Math.max(0, Math.ceil((state.nextAt - Date.now())/1000));
-  const t = state.paused ? "Atualização automática pausada" : (loading||loadingGO) ? "Lendo o TSE…" : `Próxima leitura em ${falta}s`;
+  const lido = state.lidoEm ? Math.max(0, Math.round((Date.now()-state.lidoEm)/1000)) : null;
+  const t = state.paused ? "Atualização automática pausada"
+    : (loading||loadingGO) ? "Lendo o TSE…"
+    : lido==null ? "Aguardando a primeira leitura" : `Lido do TSE há ${lido}s · automático`;
   $("next").textContent = t; $("goNext").textContent = t;
 }
 state.nextAt = Date.now() + REFRESH_S*1000;
-setInterval(()=>{
+function passo(){
   tick();
   if(state.paused || loading) return;
   if(Date.now() >= state.nextAt) refreshAll();
   else if(Date.now() - ultimaChecagem >= CHECK_S*1000) checagemRapida();
-},1000);
+}
+// o "tique" de 1 s vem de um Web Worker: o navegador desacelera bem menos os temporizadores de um worker
+// do que os da página em segundo plano. Se o worker não puder ser criado, usa o temporizador comum.
+try{
+  const w = new Worker(URL.createObjectURL(new Blob(["setInterval(()=>postMessage(0),1000)"],{type:"text/javascript"})));
+  w.onmessage = passo;
+}catch{ setInterval(passo, 1000); }
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible" && !state.paused && Date.now()-ultimaChecagem > 5000) refreshAll();
 });
@@ -1445,6 +1455,15 @@ init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); 
   mostra();
 })();
 
+/* aviso do servidor (Cloudflare) com a última totalização do TSE: se for diferente da que está na tela, lê na hora */
+function avisoTSE(tse){
+  if(state.paused || loading || loadingGO || !state.ele) return;
+  const estado = state.view!=="br";
+  const deles = tse[estado ? GO.uf : "br"];
+  const nossa = estado ? assinatura(state.go.data.gov?.raw) : assinatura(state.br?.raw);
+  if(deles && deles!==nossa) refreshAll();
+}
+
 /* ---------- pessoas online (Cloudflare Worker + Durable Object) ---------- */
 const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
 (function online(){
@@ -1458,7 +1477,7 @@ const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
   function conecta(){
     try{ ws=new WebSocket(ONLINE_WS+"?d="+encodeURIComponent(disp)); }catch{ return; }
     ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },45000); ws.send("conta"); };
-    ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); }catch{} };
+    ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); if(d.tse) avisoTSE(d.tse); }catch{} };
     ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };
   }
   document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && ws && ws.readyState>1){ espera=2000; conecta(); } });

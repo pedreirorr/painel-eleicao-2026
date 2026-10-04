@@ -1,0 +1,66 @@
+name: Histórico da apuração
+
+# Grava a evolução da apuração (Presidente/Brasil) no branch "dados",
+# de onde o painel publicado carrega a curva completa para qualquer visitante.
+on:
+  workflow_dispatch:
+    inputs:
+      horas:
+        description: "Quanto tempo rodar (máx. 5.8)"
+        default: "5.8"
+  schedule:
+    # 16h40 de Brasília (19h40 UTC) nos dias de votação: 1º turno 04/10 e 2º turno 25/10
+    - cron: "40 19 4,25 10 *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: historico-apuracao
+  cancel-in-progress: false
+
+jobs:
+  gravar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    env:
+      # dias (UTC) em que o gravador pode se reagendar sozinho ao fim das 6 h
+      DIAS_APURACAO: "2026-10-04 2026-10-05 2026-10-25 2026-10-26"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar branch de dados
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin dados
+          git worktree add -B dados dados origin/dados
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Gravar apuração
+        id: gravar
+        env:
+          DADOS_DIR: dados
+          HORAS: ${{ inputs.horas || '5.8' }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set +e
+          python gravar_historico.py
+          echo "codigo=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Continuar em nova rodada se a apuração não terminou
+        if: steps.gravar.outputs.codigo == '3'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          hoje=$(date -u +%F)
+          if echo "$DIAS_APURACAO" | grep -qw "$hoje"; then
+            gh workflow run historico.yml --ref main -R "$GITHUB_REPOSITORY"
+            echo "Nova rodada disparada."
+          else
+            echo "Fora dos dias de apuração; não reagendo."
+          fi

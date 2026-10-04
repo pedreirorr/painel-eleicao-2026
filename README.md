@@ -18,7 +18,11 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 
 A página é um único `index.html`. O navegador de cada visitante lê, a cada 30 segundos, os arquivos públicos de divulgação do TSE em `resultados.tse.jus.br`. Não há servidor intermediário.
 
-A curva de evolução é montada no navegador a partir do momento em que a página é aberta. Para gravar o histórico completo, mesmo com a página fechada, rode localmente:
+A curva de evolução vem do histórico público gravado pelo workflow **Histórico da apuração** (GitHub Actions), que lê o TSE a cada 30 s durante a apuração e salva `historico-<eleição>.json` no branch `dados`. Quem abre a página já vê a curva desde o início, somada às leituras feitas pela própria página.
+
+O workflow roda sozinho nos dias de votação (agendado para 16h40 de Brasília) e se reagenda a cada 6 h até a totalização terminar. Também pode ser iniciado manualmente na aba *Actions*.
+
+Para gravar um histórico no seu computador, rode localmente:
 
 ```
 python apuracao_servidor.py

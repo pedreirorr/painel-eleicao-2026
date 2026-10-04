@@ -727,11 +727,27 @@ async function updateHistory(b){
       if(r.ok){ state.hist=mergePoint(await r.json(),pt); state.histSrc="servidor"; return; }
     }catch{}
   }
-  // 2) senão, histórico deste navegador
+  // 2) senão, histórico deste navegador...
   const h=mergePoint(store.get(histKey(),[]),pt);
   if(h.length>1500) h.splice(0,h.length-1500);
   store.set(histKey(),h);
+  // ...somado ao histórico público gravado pelo GitHub Actions (branch "dados"), relido a cada 2 min
+  if(state.env==="oficial"){
+    if(!state.remote || state.remote.cd!==state.ele.cd || Date.now()-state.remote.at>120e3){
+      try{
+        const r=await fetch(`${HIST_REMOTE}historico-${state.ele.cd}.json?t=${Math.floor(Date.now()/60e3)}`,{cache:"no-store"});
+        state.remote={cd:state.ele.cd, at:Date.now(), pts:r.ok?await r.json():(state.remote?.cd===state.ele.cd?state.remote.pts:[])};
+      }catch{ state.remote={cd:state.ele.cd, at:Date.now(), pts:state.remote?.cd===state.ele.cd?state.remote.pts:[]}; }
+    }
+    if(state.remote.pts.length){ state.hist=mergeHist(state.remote.pts,h); state.histSrc="publico"; return; }
+  }
   state.hist=h; state.histSrc="navegador";
+}
+const HIST_REMOTE = "https://raw.githubusercontent.com/pedreirorr/painel-eleicao-2026/dados/";
+function mergeHist(...lists){
+  const m=new Map();
+  for(const l of lists) for(const p of l) m.set(p.st+"|"+p.ht, p);
+  return [...m.values()].sort((a,b)=>a.st-b.st || ptTime(a)-ptTime(b));
 }
 const hasVotes = p => Object.values(p.cand).some(c=>c[0]>0);
 const fmtHora = t => new Date(t).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
@@ -742,6 +758,8 @@ function renderChart(){
   const first=all[0];
   $("histSrc").textContent = state.histSrc==="servidor"
     ? `Gravado pelo servidor local desde ${first?first.ht.slice(0,5):"—"} · ${all.length} leituras. A curva fica completa mesmo se você fechar o painel.`
+    : state.histSrc==="publico"
+      ? `Histórico completo desde ${first?first.ht.slice(0,5):"—"} · ${all.length} leituras. Gravado no GitHub e somado às leituras desta página.`
     : /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol==="file:"
       ? `Gravado neste navegador · ${all.length} leituras. Para não perder pontos com o painel fechado, rode o apuracao_servidor.py.`
       : `Gravado neste navegador desde que você abriu a página · ${all.length} leituras. Deixe a página aberta para acompanhar a curva completa.`;

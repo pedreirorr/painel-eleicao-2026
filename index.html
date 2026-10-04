@@ -175,7 +175,7 @@ footer a{color:var(--accent)}
 <div class="wrap">
   <header>
     <div>
-      <div class="topline"><span class="eyebrow">Eleições Gerais 2026 · dados do TSE</span><span id="online" class="pill online" hidden title="Pessoas com o painel aberto agora"><span class="dot"></span><span id="onlineN">—</span></span></div>
+      <div class="topline"><span class="eyebrow">Eleições Gerais 2026 · dados do TSE</span><span id="online" class="pill online" hidden title="Dispositivos com o painel aberto agora (várias abas no mesmo navegador contam uma vez)"><span class="dot"></span><span id="onlineN">—</span></span></div>
       <h1 id="pageTitle">Apuração para Presidente da República</h1>
     </div>
     <div class="controls">
@@ -1150,9 +1150,12 @@ const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
   if(!/^https?:$/.test(location.protocol) || ONLINE_WS.includes("__")) return;
   let ws, espera=2000, ping;
   const pill=$("online"), n=$("onlineN");
-  const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"pessoa":"pessoas"} online`; };
+  const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"dispositivo":"dispositivos"} online`; };
+  // código aleatório deste navegador: igual em todas as abas, para contar dispositivos e não abas
+  let disp = store.get("dispositivo", "");
+  if(!/^[a-z0-9-]{8,40}$/.test(disp)){ disp = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36)).toLowerCase(); store.set("dispositivo", disp); }
   function conecta(){
-    try{ ws=new WebSocket(ONLINE_WS); }catch{ return; }
+    try{ ws=new WebSocket(ONLINE_WS+"?d="+encodeURIComponent(disp)); }catch{ return; }
     ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },45000); ws.send("conta"); };
     ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); }catch{} };
     ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };

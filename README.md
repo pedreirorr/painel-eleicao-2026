@@ -14,7 +14,7 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 - Evolução da apuração (por horário ou por % apurado) e diferença entre 1º e 2º colocados
 - Trajetória da média das pesquisas (abril a 3 de outubro de 2026)
 - Resultado por estado e no exterior
-- Quantidade de pessoas com o painel aberto agora
+- Quantidade de dispositivos com o painel aberto agora
 - Aba **Goiás** (`#goias`): Governador, Senado, Deputado Federal e Deputado Estadual, com busca de candidatos
 
 ## Como funciona
@@ -37,7 +37,7 @@ Para ver o simulado oficial do TSE (dados fictícios), acrescente `?sim=1` ao en
 
 ## Contador de pessoas online
 
-A pasta `contador/` tem um Cloudflare Worker com um Durable Object: cada painel aberto mantém uma conexão WebSocket, e o Worker devolve o total de conexões em tempo real. Só aceita conexões vindas do painel publicado e do painel local, e não guarda nenhum dado pessoal. Para publicar uma alteração:
+A pasta `contador/` tem um Cloudflare Worker com um Durable Object: cada painel aberto mantém uma conexão WebSocket e informa um código aleatório do navegador (guardado no próprio navegador e igual em todas as abas). O Worker conta os códigos diferentes, então várias abas no mesmo navegador contam como um dispositivo. Só aceita conexões vindas do painel publicado e do painel local, e não guarda nenhum dado pessoal. Para publicar uma alteração:
 
 ```
 cd contador

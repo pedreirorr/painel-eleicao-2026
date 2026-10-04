@@ -104,6 +104,20 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
 .vs{font:.75rem var(--mono);color:var(--muted)}
 .vs-mob{display:none}
+.proj{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.proj summary{cursor:pointer;list-style-position:inside}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.pg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);display:grid;gap:4px;min-width:0}
+.pgh{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:.84rem}
+.pgh b{overflow-wrap:anywhere}
+.pgn{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:.84rem}
+.pgn i{font-style:normal;color:var(--muted);font-size:.76rem}
+.disp{display:grid;gap:4px}
+.dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;font-size:.84rem;padding:5px 0;border-top:1px solid var(--line)}
+.dl:first-child{border-top:0}
+.dl .sub{display:block;font-size:.74rem;color:var(--muted)}
+.dl.quente b.num{color:var(--warn)}
+.tag.proj{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
 .cmpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .cmpcard{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
 .cmpcard .ano{font:600 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -451,7 +465,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261004-223324"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261004-232516"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1242,12 +1256,12 @@ function parseCargo(d){
   const carg=d.carg?.[0]||{};
   const cands=[], agrs=[];
   for(const a of carg.agr||[]){
-    const ag={nm:a.nm, com:a.com, tp:a.tp, vag:num(a.vag), votos:0, legenda:0};
+    const ag={nm:a.nm, com:a.com, tp:a.tp, vag:num(a.vag), votos:0, legenda:0, cands:[]};
     for(const p of a.par||[]){
       ag.votos += num(p.tvtn)+num(p.tvtl); ag.legenda += num(p.tvtl);
-      for(const c of p.cand||[]) cands.push({n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, vap:num(c.vap),
+      for(const c of p.cand||[]){ const o={n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, vap:num(c.vap),
         pv:pctCand(c), st:c.st||"", e:c.e, dvt:c.dvt||"",
-        vices:(c.vs||[]).map(v=>v.nmu||v.nm)});
+        vices:(c.vs||[]).map(v=>v.nmu||v.nm)}; cands.push(o); ag.cands.push(o); }
     }
     agrs.push(ag);
   }
@@ -1256,8 +1270,29 @@ function parseCargo(d){
   if(vv) cands.forEach(c=>{ if(!c.pv && c.vap) c.pv=c.vap/vv*100; });
   cands.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
   agrs.sort((a,b)=>b.votos-a.votos || a.nm.localeCompare(b.nm));
-  return {raw:d, cands, agrs, nv:num(carg.nv)||1, qe:num(carg.qe), nome:carg.nmn, s:d.s||{}, v:d.v||{}, e:d.e||{},
+  const out = {raw:d, cands, agrs, nv:num(carg.nv)||1, qe:num(carg.qe), nome:carg.nmn, s:d.s||{}, v:d.v||{}, e:d.e||{},
     pst:pctn(d.s,"pst"), dt:d.dt||d.dg, ht:d.ht||d.hg, tf:d.tf};
+  out.projecao = projetaEleitos(out);
+  return out;
+}
+/* Projeção de eleitos (cargos proporcionais): o TSE já distribui as vagas por partido/federação ("vag")
+   a cada totalização; dentro de cada um, ficam com as vagas os mais votados. Não é o resultado oficial:
+   some quando o TSE encerra a totalização (aí valem as situações oficiais de cada candidato). */
+function projetaEleitos(d){
+  if(d.nv<=1 || d.tf==="s" || !d.agrs.some(a=>a.vag>0) || d.cands.some(c=>/eleit/i.test(c.st))) return null;
+  const valido = c => c.vap>0 && !/anulad|indeferid|cassad/i.test(c.dvt);
+  const grupos=[], disputas=[];
+  for(const a of d.agrs){
+    if(!a.vag) continue;
+    const lista = a.cands.filter(valido).sort((x,y)=>y.vap-x.vap || (+x.n)-(+y.n));
+    const eleitos = lista.slice(0,a.vag);
+    eleitos.forEach(c=>c.proj=true);
+    grupos.push({nm:a.nm, com:a.com, vag:a.vag, eleitos});
+    if(lista.length>a.vag) disputas.push({nm:a.nm, dentro:lista[a.vag-1], fora:lista[a.vag], dif:lista[a.vag-1].vap-lista[a.vag].vap});
+  }
+  grupos.sort((x,y)=>y.vag-x.vag || x.nm.localeCompare(y.nm));
+  disputas.sort((x,y)=>x.dif-y.dif);
+  return {grupos, disputas, total:grupos.reduce((t,g)=>t+g.vag,0)};
 }
 
 async function loadGO(){
@@ -1325,7 +1360,7 @@ function renderBusca(){
   el.innerHTML = !hits.length ? `<p class="meta" style="margin:0">Nenhum candidato encontrado para “${esc(state.go.q)}”.</p>`
     : `<div class="meta">${hits.length} encontrado${hits.length>1?"s":""}${hits.length>shown.length?` · mostrando os ${shown.length} mais votados`:""}</div>` +
       shown.map(({k,c,rank,total,started,final})=>{
-        const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st&&final?`<span class="tag dim">${esc(c.st)}</span>`:"");
+        const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st&&final?`<span class="tag dim">${esc(c.st)}</span>`:(c.proj?`<span class="tag proj">Eleito (projeção)</span>`:""));
         return `<div class="res">
           <div style="min-width:0"><div class="rn"><span class="ctag">${cargoNome(k)}</span>${esc(c.nm)} ${st}</div>
             <div class="rs num">${esc(c.n)} · ${esc(c.sg)}${started?` · ${rank}º de ${total}`:""}</div></div>
@@ -1409,6 +1444,13 @@ function renderProporcional(id,key,d){
   const el=$(id);
   if(!el.dataset.built){
     el.innerHTML=`<div class="panel-head"><h2>${key==="df"?"Deputado Federal":esc(ESTADOS[GO.uf].legLocal)}</h2><span class="eyebrow" data-r="vagas"></span></div>
+      <details class="proj" data-r="projbox" ${celular()?"":"open"} hidden>
+        <summary><span class="eyebrow" data-r="projtit">Projeção de eleitos</span></summary>
+        <div class="meta" style="font-size:.8rem;display:block;margin:6px 0 8px">Se a apuração terminasse agora: vagas que o TSE já distribuiu a cada partido ou federação, ocupadas pelos mais votados de cada um. <b>Não é o resultado oficial</b>, que sai quando o TSE encerra a totalização.</div>
+        <div class="pgrid" data-r="proj"></div>
+        <div class="eyebrow" style="margin-top:10px">Disputas mais apertadas dentro dos partidos</div>
+        <div class="disp" data-r="disp"></div>
+      </details>
       <div class="prop">
         <div style="min-width:0;display:grid;gap:8px">
           <div class="eyebrow">Partidos e federações · votos nominais + legenda</div>
@@ -1429,12 +1471,22 @@ function renderProporcional(id,key,d){
       <td class="r num">${nf.format(a.votos)}${a.legenda?`<span class="sub">${nf.format(a.legenda)} de legenda</span>`:""}</td>
       <td class="r num">${pf(a.votos/vv*100)}</td>
       <td class="r num">${anyVag?(a.vag||"—"):"—"}</td></tr>`).join("");
+  const pj=d.projecao, box=el.querySelector('[data-r="projbox"]');
+  box.hidden=!pj;
+  if(pj){
+    el.querySelector('[data-r="projtit"]').textContent=`Projeção de eleitos · ${pj.total} vagas · ${pf(d.pst)} apurado`;
+    el.querySelector('[data-r="proj"]').innerHTML=pj.grupos.map(g=>`<div class="pg"><div class="pgh"><b>${esc(g.nm)}</b><span class="tag">${g.vag} ${g.vag>1?"vagas":"vaga"}</span></div>
+      <div class="pgn">${g.eleitos.map(c=>`<span>${esc(c.nm)} <i class="num">${nf.format(c.vap)}</i></span>`).join("")}</div></div>`).join("");
+    el.querySelector('[data-r="disp"]').innerHTML=pj.disputas.slice(0,5).map(x=>`<div class="dl${x.dif<1000?" quente":""}">
+      <span><b>${esc(x.dentro.nm)}</b> ${nf.format(x.dentro.vap)} × ${esc(x.fora.nm)} ${nf.format(x.fora.vap)} <span class="sub">${esc(x.nm)}</span></span>
+      <b class="num">${nf.format(x.dif)} ${x.dif===1?"voto":"votos"}</b></div>`).join("") || `<div class="meta">—</div>`;
+  }
   const shown=d.cands.slice(0,60).map((c,i)=>({...c,rank:i+1}));
   el.querySelector('[data-r="cand"]').innerHTML = shown.length ? shown.map(c=>`<tr>
       <td class="r num">${c.rank}º</td>
       <td class="nm">${esc(c.nm)}<span class="sub">${esc(c.n)} · ${esc(c.sg)}</span></td>
       <td class="r num">${nf.format(c.vap)}</td><td class="r num">${pf(c.pv)}</td>
-      <td>${c.st&&!/não eleito/i.test(c.st)?`<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>`:(c.st&&d.tf==="s"?`<span class="tag dim">${esc(c.st)}</span>`:"")}</td></tr>`).join("")
+      <td>${c.st&&!/não eleito/i.test(c.st)?`<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>`:(c.st&&d.tf==="s"?`<span class="tag dim">${esc(c.st)}</span>`:(c.proj?`<span class="tag proj">Eleito (projeção)</span>`:""))}</td></tr>`).join("")
     : `<tr><td colspan="5" class="meta">Nenhum candidato encontrado.</td></tr>`;
 }
 

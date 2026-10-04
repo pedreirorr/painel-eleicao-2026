@@ -691,7 +691,7 @@ function renderCands(){
         <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?" · "+esc(c.col):""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
       <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs}</div>
       <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i><span class="half"></span>${pa!=null?`<span class="poll" style="left:${pa}%" title="Média das pesquisas: ${pf(pa)}"></span>`:""}</div>
-      ${started&&!final?needLine(c,i,b.cands,num(b.v.vv),{turno:state.ele?.t||"1"}):""}
+      ${started&&!final?needLine(c,i,b.cands,restante(b),{turno:state.ele?.t||"1"}):""}
     </div>`;
   }).join("");
 }
@@ -1063,23 +1063,46 @@ document.querySelector("#goBusca .chips").addEventListener("click",e=>{
   renderBusca();
 });
 
-/* quanto falta para ser eleito, com base nos votos válidos já apurados */
+/* quanto falta para ser eleito, considerando o que ainda falta apurar.
+   vv   = votos válidos já apurados
+   R    = votos válidos que ainda devem entrar (eleitores das seções não totalizadas × válidos por eleitor nas já totalizadas)
+   Rmax = teto: todos os eleitores das seções que faltam votando em candidatos (para "garantido"/"impossível") */
 const pp = x => Math.abs(x).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-function needLine(c,i,list,vv,{seats=0,turno="1"}={}){
-  if(!vv || !c.vap && i>3) return "";
-  const v=c.vap, pv=v/vv*100, out=[];
-  if(!seats){ // maioria absoluta: mais de 50% dos válidos
-    if(2*v>vv) out.push(`<b class="up">Acima de 50%</b> por ${nf.format(2*v-vv)} votos (${pp(pv-50)} p.p.)`);
-    else out.push(`Faltam <b>${nf.format(vv-2*v+1)} votos</b> (${pp(50-pv)} p.p.) para 50% dos válidos`);
-    if(turno==="1" && list.length>2){
-      if(i<=1) out.push(`${nf.format(v-list[2].vap)} votos à frente do 3º`);
-      else out.push(`${nf.format(list[1].vap-v+1)} votos para alcançar o 2º (vaga no 2º turno)`);
-    }
-  } else { // maioria simples com N vagas (Senado)
-    if(i<seats && list[seats]) out.push(`<b class="up">Vantagem:</b> ${nf.format(v-list[seats].vap)} votos (${pp(pv-list[seats].vap/vv*100)} p.p.) à frente do ${seats+1}º`);
-    else if(i>=seats) out.push(`Faltam <b>${nf.format(list[seats-1].vap-v+1)} votos</b> (${pp(list[seats-1].vap/vv*100-pv)} p.p.) para alcançar o ${seats}º (última vaga)`);
+const pc1 = x => x.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})+"%";
+function restante(dados){
+  const vv=num(dados.v.vv), est=num(dados.e.est), esnt=num(dados.e.esnt);
+  return { vv, R: est>0 ? Math.round(esnt*vv/est) : 0, Rmax: esnt };
+}
+function needLine(c,i,list,{vv,R,Rmax},{seats=0,turno="1"}={}){
+  if(!vv || (!c.vap && i>3)) return "";
+  const v=c.vap, out=[];
+  if(!seats){ // maioria absoluta: mais de 50% dos válidos ao final
+    const total=vv+R, need=Math.floor(total/2)+1-v;
+    const lider=list[0]; if(lider && i>0 && 2*lider.vap > vv+Rmax) return ""; // outro candidato já está eleito matematicamente
+    if(2*v > vv+Rmax) return `<div class="need num"><b class="up">Eleito matematicamente</b>: passa de 50% mesmo que todos os votos que faltam sejam de outros</div>`;
+    else if(2*v+Rmax < vv) out.push(`<b>Sem chance matemática</b> de passar de 50% no 1º turno`);
+    else if(need<=0) out.push(`<b class="up">Acima de 50% da projeção final</b>: ${nf.format(-need+1)} votos de folga sobre a metade dos ~${nf.format(total)} válidos esperados`);
+    else if(R>0 && need<=R) out.push(`Precisa de <b>${nf.format(need)} votos</b> dos ~${nf.format(R)} que faltam apurar (<b>${pc1(need/R*100)}</b> deles) para passar de 50%`);
+    else if(R>0) out.push(`Precisaria de <b>${nf.format(need)} votos</b> para passar de 50%, mais do que os ~${nf.format(R)} que ainda devem ser apurados`);
+    else out.push(`Faltam <b>${nf.format(need)} votos</b> (${pp(50-v/vv*100)} p.p.) para 50% dos válidos`);
+    if(turno==="1" && list.length>2) out.push(vagaLine(v,i,list,2,R,Rmax,"vaga no 2º turno"));
+  } else {
+    out.push(vagaLine(v,i,list,seats,R,Rmax,"vaga"));
   }
   return `<div class="need num">${out.join(" · ")}</div>`;
+}
+// disputa por posição: os "n" primeiros ficam com a vaga
+function vagaLine(v,i,list,n,R,Rmax,nome){
+  if(!list[n]) return "";
+  if(i<n){
+    const lead=v-list[n].vap;
+    if(lead>Rmax) return `<b class="up">${nome[0].toUpperCase()+nome.slice(1)} garantida matematicamente</b>`;
+    return `<b class="up">Vantagem</b> de ${nf.format(lead)} votos sobre o ${n+1}º${R>0?`, com ~${nf.format(R)} votos ainda a apurar`:""}`;
+  }
+  const gap=list[n-1].vap-v+1;
+  if(gap>Rmax) return `Sem chance matemática de ${nome}`;
+  if(R>0 && gap>R) return `Precisaria tirar <b>${nf.format(gap)} votos</b> de diferença do ${n}º colocado, mais do que os ~${nf.format(R)} que ainda devem ser apurados`;
+  return `Precisa tirar <b>${nf.format(gap)} votos</b> de diferença do ${n}º colocado${R>0?` nos ~${nf.format(R)} que faltam apurar (${pc1(gap/R*100)} deles, se o rival não receber nenhum)`:""}`;
 }
 
 function renderMajoritaria(id,d,{half=false,seats=0}={}){
@@ -1096,7 +1119,7 @@ function renderMajoritaria(id,d,{half=false,seats=0}={}){
       <div class="cname">${esc(c.nm)}${tags.join("")}<span class="sub">${sub}</span></div>
       <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div></div>
       <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i>${half?'<span class="half"></span>':""}${cut!=null?`<span class="half" style="left:${cut}%" title="Votação do ${seats}º colocado"></span>`:""}</div>
-      ${started&&!final?needLine(c,i,d.cands,vv,{seats,turno:state.go.ele?.t||"1"}):""}
+      ${started&&!final?needLine(c,i,d.cands,restante(d),{seats,turno:state.go.ele?.t||"1"}):""}
     </div>`;
   }).join("");
 }

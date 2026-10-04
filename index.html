@@ -88,6 +88,10 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
 .vs{font:.75rem var(--mono);color:var(--muted)}
 .vs-mob{display:none}
+.mgnow{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin-bottom:6px}
+.mgnow>b{font:700 1.6rem/1.1 var(--display)}
+.mgnow span{color:var(--muted);font-size:.9rem}
+.mgnow span b{color:var(--ink);font-weight:600}
 .need{grid-column:2 / 4;font-size:.78rem;color:var(--muted);line-height:1.35}
 .need b{color:var(--ink);font-weight:600}
 .need b.up{color:var(--accent)}
@@ -892,10 +896,14 @@ function renderMargin(h,byTime,xv){
   const line=pts.map(p=>`${x(p.x).toFixed(1)},${y(p.d).toFixed(1)}`).join(" ");
   const area=`${x(pts[0].x).toFixed(1)},${y(0)} ${line} ${x(pts[pts.length-1].x).toFixed(1)},${y(0)}`;
   const last=pts[pts.length-1], col=colorFor(last.d>=0?a.n:b.n);
-  $("marginChart").innerHTML=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Diferença entre os dois primeiros colocados">
+  const lider = last.d>=0 ? a : b, atras = last.d>=0 ? b : a;
+  $("marginChart").innerHTML=`<div class="mgnow num">
+      <b style="color:${col}">${esc(shortName(lider.nm))} +${Math.abs(last.d).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})} p.p.</b>
+      <span><b>${nf.format(Math.abs(last.v))} votos</b> à frente de ${esc(shortName(atras.nm))}</span>
+    </div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Diferença entre os dois primeiros colocados">
     ${g}<polygon points="${area}" fill="${col}" fill-opacity=".15"/><polyline points="${line}" fill="none" stroke="${col}" stroke-width="2.2"/>
-    <circle cx="${x(last.x)}" cy="${y(last.d)}" r="4" fill="${col}"/></svg>
-    <div class="vs num">Agora: <b>${last.d>=0?"+":"−"}${Math.abs(last.d).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})} p.p.</b> · ${nf.format(Math.abs(last.v))} votos de diferença</div>`;
+    <circle cx="${x(last.x)}" cy="${y(last.d)}" r="4" fill="${col}"/></svg>`;
 }
 function renderBoletins(){
   const [a,b]=state.br.cands;

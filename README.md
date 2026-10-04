@@ -2,7 +2,9 @@
 
 Painel para acompanhar a apuração da eleição para Presidente da República de 2026 em tempo real, com dados públicos do TSE.
 
-**Ver o painel:** abra o link do GitHub Pages deste repositório.
+**Ver o painel:** https://pedreirorr.github.io/painel-eleicao-2026/
+
+**Direto na aba Goiás:** https://pedreirorr.github.io/painel-eleicao-2026/#goias
 
 ## O que mostra
 

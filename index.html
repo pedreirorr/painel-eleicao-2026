@@ -80,6 +80,9 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .bar .half{position:absolute;left:50%;top:-4px;bottom:-4px;border-left:1.5px dashed var(--muted)}
 .bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
 .vs{font:.75rem var(--mono);color:var(--muted)}
+.need{grid-column:2 / 4;font-size:.78rem;color:var(--muted);line-height:1.35}
+.need b{color:var(--ink);font-weight:600}
+.need b.up{color:var(--accent)}
 .vs b{font-weight:600}
 .up{color:var(--accent)} .down{color:var(--bad)}
 table.polltable{min-width:520px}
@@ -688,6 +691,7 @@ function renderCands(){
         <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?" · "+esc(c.col):""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
       <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs}</div>
       <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i><span class="half"></span>${pa!=null?`<span class="poll" style="left:${pa}%" title="Média das pesquisas: ${pf(pa)}"></span>`:""}</div>
+      ${started&&!final?needLine(c,i,b.cands,num(b.v.vv),{turno:state.ele?.t||"1"}):""}
     </div>`;
   }).join("");
 }
@@ -715,12 +719,9 @@ function toPoint(b){
   const cand={}; b.cands.forEach(c=>cand[c.n]=[c.vap,+c.pv.toFixed(4)]);
   return {dt:b.dt||b.dg, ht:b.ht||b.hg, pst:b.pst, st:num(b.s.st), cand};
 }
-function mergePoint(h,pt){
-  const last=h[h.length-1];
-  if(last && last.ht===pt.ht && last.st===pt.st) return h;
-  if(last && pt.st<last.st) h.length=0; // recomeço (ex.: simulado reiniciado)
-  h.push(pt); return h;
-}
+// junta um ponto ao histórico sem nunca apagar nada: um arquivo atrasado do cache do TSE
+// (ou outra aba com dado mais antigo) só é intercalado na posição certa
+function mergePoint(h,pt){ return mergeHist(h,[pt]); }
 async function updateHistory(b){
   const pt=toPoint(b);
   // 1) histórico gravado pelo servidor local (apuracao_servidor.py), se o painel estiver aberto por ele
@@ -1020,7 +1021,7 @@ function renderGO(){
     $("goUpdated").textContent=`Última totalização: ${ref.dt||"—"} às ${ref.ht||"—"} · ${nf.format(num(ref.e.te))} eleitores`;
   }
   if(D.gov) renderMajoritaria("goGovList", D.gov, {half:true});
-  if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas · os "+D.sen.nv+" mais votados":"vaga · o mais votado"}`; }
+  if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas · os "+D.sen.nv+" mais votados":"vaga · o mais votado"} · tracejado = votação do ${D.sen.nv}º`; }
   if(D.df) renderProporcional("goDF","df",D.df);
   if(D.de) renderProporcional("goDE","de",D.de);
   renderBusca();
@@ -1038,15 +1039,15 @@ function renderBusca(){
   for(const k of keys){
     const d=D[k]; if(!d) continue;
     d.cands.forEach((c,i)=>{
-      if(fold(c.nm).includes(q) || c.n.startsWith(q) || fold(c.sg)===q) hits.push({k,c,rank:i+1,total:d.cands.length,started:d.cands.some(x=>x.vap>0)});
+      if(fold(c.nm).includes(q) || c.n.startsWith(q) || fold(c.sg)===q) hits.push({k,c,rank:i+1,total:d.cands.length,started:d.cands.some(x=>x.vap>0),final:d.tf==="s"});
     });
   }
   hits.sort((a,b)=>b.c.vap-a.c.vap || a.c.nm.localeCompare(b.c.nm));
   const shown=hits.slice(0,80);
   el.innerHTML = !hits.length ? `<p class="meta" style="margin:0">Nenhum candidato encontrado para “${esc(state.go.q)}”.</p>`
     : `<div class="meta">${hits.length} encontrado${hits.length>1?"s":""}${hits.length>shown.length?` · mostrando os ${shown.length} mais votados`:""}</div>` +
-      shown.map(({k,c,rank,total,started})=>{
-        const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st?`<span class="tag dim">${esc(c.st)}</span>`:"");
+      shown.map(({k,c,rank,total,started,final})=>{
+        const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st&&final?`<span class="tag dim">${esc(c.st)}</span>`:"");
         return `<div class="res">
           <div style="min-width:0"><div class="rn"><span class="ctag">${CARGO_NOME[k]}</span>${esc(c.nm)} ${st}</div>
             <div class="rs num">${esc(c.n)} · ${esc(c.sg)}${started?` · ${rank}º de ${total}`:""}</div></div>
@@ -1062,19 +1063,40 @@ document.querySelector("#goBusca .chips").addEventListener("click",e=>{
   renderBusca();
 });
 
+/* quanto falta para ser eleito, com base nos votos válidos já apurados */
+const pp = x => Math.abs(x).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+function needLine(c,i,list,vv,{seats=0,turno="1"}={}){
+  if(!vv || !c.vap && i>3) return "";
+  const v=c.vap, pv=v/vv*100, out=[];
+  if(!seats){ // maioria absoluta: mais de 50% dos válidos
+    if(2*v>vv) out.push(`<b class="up">Acima de 50%</b> por ${nf.format(2*v-vv)} votos (${pp(pv-50)} p.p.)`);
+    else out.push(`Faltam <b>${nf.format(vv-2*v+1)} votos</b> (${pp(50-pv)} p.p.) para 50% dos válidos`);
+    if(turno==="1" && list.length>2){
+      if(i<=1) out.push(`${nf.format(v-list[2].vap)} votos à frente do 3º`);
+      else out.push(`${nf.format(list[1].vap-v+1)} votos para alcançar o 2º (vaga no 2º turno)`);
+    }
+  } else { // maioria simples com N vagas (Senado)
+    if(i<seats && list[seats]) out.push(`<b class="up">Vantagem:</b> ${nf.format(v-list[seats].vap)} votos (${pp(pv-list[seats].vap/vv*100)} p.p.) à frente do ${seats+1}º`);
+    else if(i>=seats) out.push(`Faltam <b>${nf.format(list[seats-1].vap-v+1)} votos</b> (${pp(list[seats-1].vap/vv*100-pv)} p.p.) para alcançar o ${seats}º (última vaga)`);
+  }
+  return `<div class="need num">${out.join(" · ")}</div>`;
+}
+
 function renderMajoritaria(id,d,{half=false,seats=0}={}){
-  const started=d.cands.some(c=>c.vap>0), final=d.tf==="s";
+  const started=d.cands.some(c=>c.vap>0), final=d.tf==="s", vv=num(d.v.vv);
+  const cut = seats && started && d.cands[seats-1] ? d.cands[seats-1].pv : null;
   $(id).innerHTML=d.cands.map((c,i)=>{
     const col=PALETTE[i%PALETTE.length];
     const tags=[candTags(c,final)];
-    if(seats && started && i<seats && !/eleit/i.test(c.st)) tags.push(`<span class="tag">Dentro das vagas</span>`);
+    if(seats && started && i<seats && !(/eleit/i.test(c.st) && !/não eleit/i.test(c.st))) tags.push(`<span class="tag">Dentro das vagas</span>`);
     const sub=[c.n, c.sg, ...c.vices.map((v,j)=>(half?"vice: ":(j?"2º supl.: ":"1º supl.: "))+v)].map(esc).join(" · ");
     return `<div class="cand${i>=4&&d.cands.length>6?" minor":""}" style="--c:${col}">
       <div class="foto"><img src="${esc(goFoto(state.go.ele,c.sq))}" alt="" width="52" height="52" loading="lazy" style="width:100%;height:100%;object-fit:cover"
         onerror="this.replaceWith(document.createTextNode('${esc(initials(c.nm))}'))"></div>
       <div class="cname">${esc(c.nm)}${tags.join("")}<span class="sub">${sub}</span></div>
       <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div></div>
-      <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i>${half?'<span class="half"></span>':""}</div>
+      <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i>${half?'<span class="half"></span>':""}${cut!=null?`<span class="half" style="left:${cut}%" title="Votação do ${seats}º colocado"></span>`:""}</div>
+      ${started&&!final?needLine(c,i,d.cands,vv,{seats,turno:state.go.ele?.t||"1"}):""}
     </div>`;
   }).join("");
 }
@@ -1108,7 +1130,7 @@ function renderProporcional(id,key,d){
       <td class="r num">${c.rank}º</td>
       <td class="nm">${esc(c.nm)}<span class="sub">${esc(c.n)} · ${esc(c.sg)}</span></td>
       <td class="r num">${nf.format(c.vap)}</td><td class="r num">${pf(c.pv)}</td>
-      <td>${c.st&&!/não eleito/i.test(c.st)?`<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>`:(c.st?`<span class="tag dim">${esc(c.st)}</span>`:"")}</td></tr>`).join("")
+      <td>${c.st&&!/não eleito/i.test(c.st)?`<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>`:(c.st&&d.tf==="s"?`<span class="tag dim">${esc(c.st)}</span>`:"")}</td></tr>`).join("")
     : `<tr><td colspan="5" class="meta">Nenhum candidato encontrado.</td></tr>`;
 }
 

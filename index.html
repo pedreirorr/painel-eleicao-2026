@@ -33,7 +33,12 @@ h1{font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:700;letter-spacing:-.01em}
 h2{font-size:1.15rem;font-weight:600}
 .eyebrow{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
 .num{font-variant-numeric:tabular-nums}
-header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+header{display:grid;gap:4px}
+/* barra de controles: igual nas duas abas; no celular fica presa no topo ao rolar */
+.toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;
+  background:var(--bg);margin-inline:-16px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.toolbar .tabs .seg{min-width:120px;padding:8px 16px;font-weight:600}
+.acts{display:flex;gap:8px;align-items:center}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button,select,input{font:500 .85rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px}
 button{cursor:pointer}
@@ -89,6 +94,7 @@ table.polltable{min-width:520px}
 .seg.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .view{display:grid;gap:18px;min-width:0}
 .tabs{display:inline-flex;gap:0}
+.tabs .seg.on{outline:none}
 .tabs .seg{border-radius:0}
 .tabs .seg:first-child{border-radius:6px 0 0 6px}
 .tabs .seg:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
@@ -103,9 +109,16 @@ table.polltable{min-width:520px}
 .search{width:100%;max-width:280px}
 @media (max-width:600px){
   .wrap{padding-block:14px 32px;gap:14px}
-  header{gap:10px}
-  header .controls{gap:6px}
-  header .controls button{padding:6px 10px}
+  h1{font-size:1.45rem}
+  .toolbar{flex-wrap:nowrap;gap:8px;padding-block:8px}
+  .toolbar .tabs{flex:1 1 auto;display:flex}
+  .toolbar .tabs .seg{flex:1 1 0;min-width:0;padding:10px 8px;font-size:.92rem}
+  .acts #pause,.acts .long{display:none}
+  .acts button{padding:10px 12px}
+  .need{font-size:.74rem}
+  .cname .col{display:none}
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding-inline:14px}
+  .chips .chip{flex:0 0 auto;padding:7px 12px}
   .pill{font-size:.64rem;padding:3px 8px}
   .apurado{font-size:2rem}
   .apurado small{display:block;margin:4px 0 0}
@@ -177,21 +190,25 @@ footer a{color:var(--accent)}
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <div class="topline"><span class="eyebrow">Eleições Gerais 2026 · dados do TSE</span><span id="online" class="pill online" hidden title="Dispositivos com o painel aberto agora (várias abas no mesmo navegador contam uma vez)"><span class="dot"></span><span id="onlineN">—</span></span></div>
-      <h1 id="pageTitle">Apuração para Presidente da República</h1>
-    </div>
-    <div class="controls">
-      <div class="tabs" role="tablist" aria-label="Disputa">
-        <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true">Presidente</button>
-        <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
-      </div>
+    <div class="topline">
+      <span class="eyebrow">Eleições Gerais 2026 · dados do TSE</span>
       <span id="envPill" class="pill">—</span>
+      <span id="online" class="pill online" hidden title="Dispositivos com o painel aberto agora (várias abas no mesmo navegador contam uma vez)"><span class="dot"></span><span id="onlineN">—</span></span>
+    </div>
+    <h1 id="pageTitle">Apuração para Presidente da República</h1>
+  </header>
+
+  <nav class="toolbar" aria-label="Navegação do painel">
+    <div class="tabs" role="tablist" aria-label="Disputa">
+      <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true">Presidente</button>
+      <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
+    </div>
+    <div class="acts">
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
-      <button id="refresh" type="button" class="primary">Atualizar agora</button>
+      <button id="refresh" type="button" class="primary" aria-label="Atualizar agora"><span aria-hidden="true">↻</span> Atualizar<span class="long"> agora</span></button>
     </div>
-  </header>
+  </nav>
 
   <div id="notice" class="notice" hidden></div>
 
@@ -697,7 +714,7 @@ function renderCands(){
       <div class="foto"><img src="${esc(fotoUrl(c.sq,state.ele))}" alt="" width="52" height="52" loading="lazy"
         style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(document.createTextNode('${esc(initials(c.nm))}'))"></div>
       <div class="cname">${esc(c.nm)}${candTags(c,final)}
-        <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?" · "+esc(c.col):""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
+        <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?`<span class="col"> · ${esc(c.col)}</span>`:""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
       <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs}</div>
       <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i><span class="half"></span>${pa!=null?`<span class="poll" style="left:${pa}%" title="Média das pesquisas: ${pf(pa)}"></span>`:""}</div>
       ${started&&!final?needLine(c,i,b.cands,restante(b),{turno:state.ele?.t||"1"}):""}
@@ -1036,7 +1053,7 @@ function renderGO(){
     $("goUpdated").textContent=`Última totalização: ${ref.dt||"—"} às ${ref.ht||"—"} · ${nf.format(num(ref.e.te))} eleitores`;
   }
   if(D.gov) renderMajoritaria("goGovList", D.gov, {half:true});
-  if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas · os "+D.sen.nv+" mais votados":"vaga · o mais votado"} · tracejado = votação do ${D.sen.nv}º`; }
+  if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas":"vaga"} · tracejado = ${D.sen.nv}º colocado`; }
   if(D.df) renderProporcional("goDF","df",D.df);
   if(D.de) renderProporcional("goDE","de",D.de);
   renderBusca();

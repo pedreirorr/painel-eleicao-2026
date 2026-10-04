@@ -838,7 +838,9 @@ function renderChart(){
     $("marginChart").innerHTML = ""; renderBoletins(); return;
   }
   const usePolls = pollsApply();
-  const W=760,H=300,L=40,R=130,T=12,B=30;
+  const larg=Math.max(560, $("chart").clientWidth||760);
+  const maxRot=Math.max(...top.map(c=>(shortName(c.nm)+" 00,00%").length));
+  const W=larg,H=300,L=40,R=Math.round(18+maxRot*7),T=12,B=30;
   const xv = p => byTime ? ptTime(p) : p.pst;
   let x0=Math.min(...h.map(xv)), x1=Math.max(...h.map(xv));
   if(byTime){ if(x1-x0<10*60e3) x1=x0+10*60e3; } else { x0=Math.floor(x0/10)*10; x1=Math.max(x0+10,Math.ceil(x1/10)*10); }
@@ -878,7 +880,7 @@ function renderMargin(h,byTime,xv){
   const [a,b]=state.br.cands;
   if(!a||!b){ $("marginChart").innerHTML=""; return; }
   $("marginTitle").textContent=`Diferença ${shortName(a.nm)} − ${shortName(b.nm)} (pontos percentuais)`;
-  const W=380,H=170,L=40,R=14,T=12,B=26;
+  const W=Math.max(300,$("marginChart").clientWidth||380),H=170,L=40,R=14,T=12,B=26;
   const pts=h.filter(p=>p.cand[a.n]&&p.cand[b.n]).map(p=>({x:xv(p),d:p.cand[a.n][1]-p.cand[b.n][1],v:p.cand[a.n][0]-p.cand[b.n][0]}));
   let x0=Math.min(...pts.map(p=>p.x)), x1=Math.max(...pts.map(p=>p.x));
   if(byTime){ if(x1-x0<10*60e3) x1=x0+10*60e3; } else { x0=Math.floor(x0/10)*10; x1=Math.max(x0+10,Math.ceil(x1/10)*10); }
@@ -911,7 +913,9 @@ $("axPct").onclick=()=>{ state.axis="pct"; $("axPct").classList.add("on"); $("ax
 
 /* ---------- trajetória das pesquisas ---------- */
 function renderPolls(){
-  const W=760,H=300,L=38,R=118,T=12,B=30;
+  const larg=Math.max(560, $("pollChart").clientWidth||760);
+  const maxRot=Math.max(...POLL_CANDS.map(([,nm])=>(nm+" 00,0%").length));
+  const W=larg,H=300,L=38,R=Math.round(18+maxRot*7),T=12,B=30;
   const t0=new Date("2026-04-15T12:00:00").getTime(), t1=new Date("2026-10-04T12:00:00").getTime();
   const series=[];
   for(let t=t0;t<=POLL_END;t+=2*DAY) series.push([t,pollAvgAt(t)]);
@@ -1271,10 +1275,13 @@ function setView(v){
   $("pageTitle").textContent = v==="go" ? "Apuração em Goiás" : "Apuração para Presidente da República";
   $("turno").hidden = v==="go" || state.elections.length<2;
   try{ history.replaceState(null,"",v==="go"?"#goias":location.pathname+location.search); }catch{}
-  if(v==="go") loadGO();
+  if(v==="go") loadGO(); else if(state.br){ renderChart(); renderPolls(); }
 }
 $("tabBR").onclick=()=>setView("br");
 $("tabGO").onclick=()=>setView("go");
+
+// redesenha os gráficos quando a largura muda (girar o celular, redimensionar a janela, trocar de aba)
+let tRedesenho; addEventListener("resize",()=>{ clearTimeout(tRedesenho); tRedesenho=setTimeout(()=>{ if(state.br && state.view==="br"){ renderChart(); renderPolls(); } },200); });
 
 function refreshAll(){
   load();

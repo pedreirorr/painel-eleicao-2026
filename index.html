@@ -38,7 +38,13 @@ header{display:grid;gap:4px}
 /* barra de controles: igual nas duas abas; no celular fica presa no topo ao rolar */
 .toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;
   background:var(--bg);margin-inline:-16px;padding:8px 16px;border-bottom:1px solid var(--line)}
-.toolbar .tabs .seg{min-width:120px;padding:8px 16px;font-weight:600}
+.toolbar .tabs .seg{min-width:96px;padding:8px 14px;font-weight:600}
+.seg .s{display:none}
+.tabs .seg + .seg{margin-left:-1px}
+.tabs .seg{border-radius:0}
+.tabs .seg:first-child{border-radius:6px 0 0 6px}
+.tabs .seg:last-child{border-radius:0 6px 6px 0}
+.grid.solo{grid-template-columns:minmax(0,1fr)}
 .acts{display:flex;gap:8px;align-items:center}
 button.icon{min-width:38px;padding-inline:10px;font-size:1rem;line-height:1}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -129,7 +135,10 @@ table.polltable{min-width:520px}
   h1{font-size:1.45rem}
   .toolbar{flex-wrap:nowrap;gap:8px;padding-block:8px}
   .toolbar .tabs{flex:1 1 auto;display:flex}
-  .toolbar .tabs .seg{flex:1 1 0;min-width:0;padding:10px 8px;font-size:.92rem}
+  .toolbar .tabs .seg{flex:1 1 auto;min-width:0;padding:10px 6px;font-size:.88rem}
+  .seg .l{display:none}
+  .seg .s{display:inline}
+  #refresh .txt{display:none}
   .acts #pause,.acts .long{display:none}
   .acts button{padding:10px 12px;min-height:40px}
   .need{font-size:.74rem}
@@ -233,14 +242,17 @@ footer a{color:var(--accent)}
 
   <nav class="toolbar" aria-label="Navegação do painel">
     <div class="tabs" role="tablist" aria-label="Disputa">
-      <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true">Presidente</button>
-      <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
+      <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true"><span class="l">Presidente</span><span class="s">Pres.</span></button>
+      <button type="button" role="tab" class="seg tabUF" data-uf="go" aria-selected="false"><span class="l">Goiás</span><span class="s">GO</span></button>
+      <button type="button" role="tab" class="seg tabUF" data-uf="mg" aria-selected="false"><span class="l">Minas</span><span class="s">MG</span></button>
+      <button type="button" role="tab" class="seg tabUF" data-uf="df" aria-selected="false"><span class="l">DF</span><span class="s">DF</span></button>
+      <button type="button" role="tab" class="seg tabUF" data-uf="sp" aria-selected="false"><span class="l">São Paulo</span><span class="s">SP</span></button>
     </div>
     <div class="acts">
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
       <button id="tema" type="button" class="icon" aria-label="Mudar tema" title="Mudar tema"><span aria-hidden="true">☾</span></button>
-      <button id="refresh" type="button" class="primary" aria-label="Atualizar agora"><span aria-hidden="true">↻</span> Atualizar<span class="long"> agora</span></button>
+      <button id="refresh" type="button" class="primary" aria-label="Atualizar agora"><span aria-hidden="true">↻</span><span class="txt"> Atualizar<span class="long"> agora</span></span></button>
     </div>
   </nav>
 
@@ -351,7 +363,7 @@ footer a{color:var(--accent)}
     <section class="status" aria-live="polite">
       <div class="status-top">
         <div>
-          <div class="eyebrow">Seções totalizadas em Goiás</div>
+          <div class="eyebrow" id="ufSecTitulo">Seções totalizadas em Goiás</div>
           <div class="apurado num" id="goPst">—<small id="goPstAbs"></small></div>
         </div>
         <div class="lead num" id="goLead" hidden></div>
@@ -361,13 +373,13 @@ footer a{color:var(--accent)}
     </section>
 
     <section class="panel" id="goBusca">
-      <div class="panel-head"><h2>Buscar candidato</h2><span class="eyebrow">Senado e deputados de Goiás</span></div>
+      <div class="panel-head"><h2>Buscar candidato</h2><span class="eyebrow" id="ufBuscaSub">Senado e deputados de Goiás</span></div>
       <input type="search" id="goQ" class="search big" placeholder="Nome, número ou partido" aria-label="Buscar senador ou deputado" autocomplete="off">
       <div class="chips" role="group" aria-label="Filtrar por cargo">
         <button type="button" class="chip on" data-c="todos">Todos</button>
         <button type="button" class="chip" data-c="sen">Senado</button>
         <button type="button" class="chip" data-c="df">Dep. Federal</button>
-        <button type="button" class="chip" data-c="de">Dep. Estadual</button>
+        <button type="button" class="chip" data-c="de" id="chipDE">Dep. Estadual</button>
       </div>
       <div id="goResults" class="results"></div>
     </section>
@@ -407,7 +419,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261004-205850"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261004-210349"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1082,7 +1094,16 @@ $("turno").onchange=e=>{
   load();
 };
 /* ---------- Goiás: governador, senado, deputados (só apuração) ---------- */
-const GO = { uf:"go", cargos:{gov:"3", sen:"5", df:"6", de:"7"} };
+// estados com aba própria (só apuração). "de" é o legislativo local: estadual, ou distrital no DF
+const ESTADOS = {
+  go: { nome:"Goiás",            cargos:{gov:"3", sen:"5", df:"6", de:"7"}, legLocal:"Deputado Estadual" },
+  mg: { nome:"Minas Gerais",     cargos:{gov:"3", sen:"5", df:"6", de:"7"}, legLocal:"Deputado Estadual" },
+  df: { nome:"Distrito Federal", em:"no", de:"do", cargos:{gov:"3", sen:"5", df:"6", de:"8"}, legLocal:"Deputado Distrital" },
+  sp: { nome:"São Paulo",        cargos:{gov:"3"} }
+};
+const GO = { uf:"go", cargos:ESTADOS.go.cargos }; // estado mostrado agora na aba de estado
+const emUF = uf => `${ESTADOS[uf].em||"em"} ${ESTADOS[uf].nome}`, deUF = uf => `${ESTADOS[uf].de||"de"} ${ESTADOS[uf].nome}`;
+const legCurto = () => (ESTADOS[GO.uf].legLocal||"").replace("Deputado","Dep.");
 state.go = { ele:null, data:{}, q:"", cargo:"todos" };
 state.view = "br";
 let loadingGO = false;
@@ -1130,25 +1151,27 @@ async function loadGO(){
   if(!state.cfg){ return; }
   state.go.ele = state.go.ele || goElection();
   const ele = state.go.ele;
-  if(!ele){ goNotice("Não encontrei a eleição estadual de Goiás na configuração do TSE."); return; }
+  if(!ele){ goNotice(`Não encontrei a eleição estadual ${deUF(GO.uf)} na configuração do TSE.`); return; }
   loadingGO = true;
+  const uf = GO.uf; // se a pessoa trocar de estado durante a leitura, o resultado é descartado
   try{
     const keys=Object.keys(GO.cargos);
     const res=await Promise.allSettled(keys.map(k=>getTSE(goUrl(ele,GO.cargos[k])).then(parseCargo)));
+    if(uf!==GO.uf) return;
     let ok=0;
     res.forEach((r,i)=>{ if(r.status==="fulfilled"){ state.go.data[keys[i]]=r.value; ok++; } });
     if(!ok){
       const naoPublicado = res.every(r=>r.reason?.status===404||r.reason?.status===403);
       goNotice(naoPublicado
-        ? `O TSE ainda não divulgou os arquivos de Goiás. A divulgação começa após as 17h de Brasília; o painel tenta de novo a cada ${REFRESH_S} segundos.`
+        ? `O TSE ainda não divulgou os arquivos ${deUF(GO.uf)}. A divulgação começa após as 17h de Brasília; o painel tenta de novo a cada ${REFRESH_S} segundos.`
         : `Falha ao ler o TSE (${esc(res[0].reason?.message||"erro de conexão")}). ${Object.keys(state.go.data).length?"Mostrando os últimos dados recebidos; ":""}tentando de novo a cada ${REFRESH_S} segundos.`);
       return;
     }
     goNotice(null);
     renderGO();
   }catch(err){
-    goNotice("Erro ao ler os dados de Goiás ("+esc(err.message)+"). Tentando de novo.");
-  }finally{ loadingGO=false; }
+    goNotice(`Erro ao ler os dados ${deUF(GO.uf)} (${esc(err.message)}). Tentando de novo.`);
+  }finally{ loadingGO=false; if(uf!==GO.uf && state.view===GO.uf) loadGO(); }
 }
 function goNotice(html){ const n=$("goNotice"); n.hidden=!html; n.innerHTML=html?`<p>${html}</p>`:""; }
 
@@ -1168,7 +1191,7 @@ function renderGO(){
 }
 
 /* busca única: Senado + deputados */
-const CARGO_NOME = {sen:"Senado", df:"Dep. Federal", de:"Dep. Estadual"};
+const cargoNome = k => ({sen:"Senado", df:"Dep. Federal", de:legCurto()})[k];
 const fold = s => String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 function renderBusca(){
   const el=$("goResults"), q=fold(state.go.q.trim()), D=state.go.data;
@@ -1189,7 +1212,7 @@ function renderBusca(){
       shown.map(({k,c,rank,total,started,final})=>{
         const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st&&final?`<span class="tag dim">${esc(c.st)}</span>`:"");
         return `<div class="res">
-          <div style="min-width:0"><div class="rn"><span class="ctag">${CARGO_NOME[k]}</span>${esc(c.nm)} ${st}</div>
+          <div style="min-width:0"><div class="rn"><span class="ctag">${cargoNome(k)}</span>${esc(c.nm)} ${st}</div>
             <div class="rs num">${esc(c.n)} · ${esc(c.sg)}${started?` · ${rank}º de ${total}`:""}</div></div>
           <div class="rv num"><b>${pf(c.pv)}</b><span class="rs">${nf.format(c.vap)} votos</span></div>
         </div>`;
@@ -1270,7 +1293,7 @@ function renderMajoritaria(id,d,{half=false,seats=0}={}){
 function renderProporcional(id,key,d){
   const el=$(id);
   if(!el.dataset.built){
-    el.innerHTML=`<div class="panel-head"><h2>${key==="df"?"Deputado Federal":"Deputado Estadual"}</h2><span class="eyebrow" data-r="vagas"></span></div>
+    el.innerHTML=`<div class="panel-head"><h2>${key==="df"?"Deputado Federal":esc(ESTADOS[GO.uf].legLocal)}</h2><span class="eyebrow" data-r="vagas"></span></div>
       <div class="prop">
         <div style="min-width:0;display:grid;gap:8px">
           <div class="eyebrow">Partidos e federações · votos nominais + legenda</div>
@@ -1300,25 +1323,45 @@ function renderProporcional(id,key,d){
     : `<tr><td colspan="5" class="meta">Nenhum candidato encontrado.</td></tr>`;
 }
 
+// prepara a aba de estado para outro estado: limpa dados, textos e seções que não existem nele
+function trocaEstado(uf){
+  if(GO.uf===uf) return;
+  const cfg=ESTADOS[uf];
+  GO.uf=uf; GO.cargos=cfg.cargos; state.go.data={}; state.go.q="";
+  $("goQ").value=""; $("goResults").innerHTML="";
+  ["goGovList","goSenList"].forEach(id=>$(id).innerHTML="");
+  ["goDF","goDE"].forEach(id=>{ const el=$(id); el.innerHTML=""; delete el.dataset.built; });
+  $("goPst").innerHTML="—"; $("goBar").style.width="0%"; $("goUpdated").textContent="Carregando…"; $("goLead").hidden=true; goNotice(null);
+  $("ufSecTitulo").textContent=`Seções totalizadas ${emUF(uf)}`;
+  $("ufBuscaSub").textContent=`Senado e deputados ${deUF(uf)}`;
+  $("chipDE").textContent=legCurto();
+  const tem=k=>!!cfg.cargos[k];
+  $("goSen").hidden=!tem("sen"); $("goDF").hidden=!tem("df"); $("goDE").hidden=!tem("de"); $("goBusca").hidden=!tem("sen");
+  $("goGov").parentElement.classList.toggle("solo", !tem("sen"));
+  state.go.cargo="todos"; document.querySelectorAll("#goBusca .chip").forEach(x=>x.classList.toggle("on",x.dataset.c==="todos"));
+}
+const HASH_UF = {goias:"go", go:"go", minas:"mg", mg:"mg", df:"df", sp:"sp", saopaulo:"sp"};
 function setView(v){
   state.view=v;
-  $("viewBR").hidden = v!=="br"; $("viewGO").hidden = v!=="go";
-  $("tabBR").classList.toggle("on",v==="br"); $("tabGO").classList.toggle("on",v==="go");
-  $("tabBR").setAttribute("aria-selected",v==="br"); $("tabGO").setAttribute("aria-selected",v==="go");
-  $("pageTitle").textContent = v==="go" ? "Apuração em Goiás" : "Apuração para Presidente da República";
-  $("turno").hidden = v==="go" || state.elections.length<2;
-  try{ history.replaceState(null,"",v==="go"?"#goias":location.pathname+location.search); }catch{}
-  if(v==="go") loadGO(); else if(state.br){ renderChart(); renderPolls(); }
+  const estado = v!=="br";
+  if(estado) trocaEstado(v);
+  $("viewBR").hidden = estado; $("viewGO").hidden = !estado;
+  $("tabBR").classList.toggle("on",!estado); $("tabBR").setAttribute("aria-selected",!estado);
+  document.querySelectorAll(".tabUF").forEach(b=>{ const on=b.dataset.uf===v; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
+  $("pageTitle").textContent = estado ? `Apuração ${emUF(v)}` : "Apuração para Presidente da República";
+  $("turno").hidden = estado || state.elections.length<2;
+  try{ history.replaceState(null,"",estado?"#"+(v==="go"?"goias":v):location.pathname+location.search); }catch{}
+  if(estado) loadGO(); else if(state.br){ renderChart(); renderPolls(); }
 }
 $("tabBR").onclick=()=>setView("br");
-$("tabGO").onclick=()=>setView("go");
+document.querySelectorAll(".tabUF").forEach(b=>b.onclick=()=>setView(b.dataset.uf));
 
 // redesenha os gráficos quando a largura muda (girar o celular, redimensionar a janela, trocar de aba)
 let tRedesenho; addEventListener("resize",()=>{ clearTimeout(tRedesenho); tRedesenho=setTimeout(()=>{ if(state.br && state.view==="br"){ renderChart(); renderPolls(); } },200); });
 
 function refreshAll(){
   load();
-  if(state.view==="go") loadGO();
+  if(state.view!=="br") loadGO();
 }
 
 /* ---------- relógio de atualização ----------
@@ -1335,7 +1378,7 @@ async function checagemRapida(){
   if(checando || loading || loadingGO || !state.ele) return;
   checando = true; ultimaChecagem = Date.now();
   try{
-    if(state.view==="go" && state.go.ele){
+    if(state.view!=="br" && state.go.ele){
       const d = await getTSE(goUrl(state.go.ele, GO.cargos.gov));
       if(assinatura(d) !== assinatura(state.go.data.gov?.raw ?? state.go.data.gov)) refreshAll();
     }else{
@@ -1362,7 +1405,7 @@ document.addEventListener("visibilitychange",()=>{
 
 state.colors={...POLL_COLORS};
 renderPolls();
-init().then(()=>{ if(location.hash==="#goias") setView("go"); });
+init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); });
 
 /* ---------- versão nova publicada: todos os aparelhos recarregam sozinhos ----------
    A cada minuto (e ao voltar para a aba) lê versao.txt do site. Se mudou, recarrega mantendo a aba

@@ -4,7 +4,7 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 
 **Ver o painel:** https://pedreirorr.github.io/painel-eleicao-2026/
 
-**Direto na aba Goiás:** https://pedreirorr.github.io/painel-eleicao-2026/#goias
+**Direto num estado:** [Goiás](https://pedreirorr.github.io/painel-eleicao-2026/#goias) · [Minas Gerais](https://pedreirorr.github.io/painel-eleicao-2026/#mg) · [Distrito Federal](https://pedreirorr.github.io/painel-eleicao-2026/#df) · [São Paulo](https://pedreirorr.github.io/painel-eleicao-2026/#sp)
 
 ## O que mostra
 
@@ -15,7 +15,7 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 - Trajetória da média das pesquisas (abril a 3 de outubro de 2026)
 - Resultado por estado e no exterior
 - Quantidade de dispositivos com o painel aberto agora
-- Aba **Goiás** (`#goias`): Governador, Senado, Deputado Federal e Deputado Estadual, com busca de candidatos
+- Abas de estado: **Goiás** (`#goias`), **Minas Gerais** (`#mg`) e **Distrito Federal** (`#df`) com Governador, Senado, Deputado Federal e Estadual/Distrital e busca de candidatos; **São Paulo** (`#sp`) só com Governador
 
 ## Como funciona
 

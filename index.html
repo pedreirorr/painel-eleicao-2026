@@ -87,6 +87,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .bar .half{position:absolute;left:50%;top:-4px;bottom:-4px;border-left:1.5px dashed var(--muted)}
 .bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
 .vs{font:.75rem var(--mono);color:var(--muted)}
+.vs-mob{display:none}
 .need{grid-column:2 / 4;font-size:.78rem;color:var(--muted);line-height:1.35}
 .need b{color:var(--ink);font-weight:600}
 .need b.up{color:var(--accent)}
@@ -119,8 +120,11 @@ table.polltable{min-width:520px}
   .acts button{padding:10px 12px;min-height:40px}
   .need{font-size:.74rem}
   .cname .col{display:none}
-  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding-inline:14px}
-  .chips .chip{flex:0 0 auto;padding:7px 12px}
+  .vs-desk{display:none}
+  .vs-mob{display:block;grid-column:2 / 4}
+  .cvotes{white-space:nowrap}
+  #goBusca .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding-inline:14px}
+  #goBusca .chips .chip{flex:0 0 auto;padding:7px 12px}
   .pill{font-size:.64rem;padding:3px 8px}
   .apurado{font-size:2rem}
   .apurado small{display:block;margin:4px 0 0}
@@ -725,15 +729,17 @@ function renderCands(){
     let vs = "";
     if(pa!=null){
       const diff = c.pv-pa;
-      vs = `<div class="vs num">Pesquisas: <b>${pf(pa)}</b>${started?` · <b class="${diff>=0?"up":"down"}">${diff>=0?"+":"−"}${Math.abs(diff).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</b>`:""}</div>`;
+      const d1=Math.round(diff*10)/10, cls=d1>0?"up":d1<0?"down":"", sinal=d1>0?"+":d1<0?"−":"";
+      vs = `<div class="vs num">Pesquisas: <b>${pf(pa)}</b>${started?` · <b class="${cls}">${sinal}${Math.abs(d1).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</b>`:""}</div>`;
     }
     return `<div class="cand${minor?" minor":""}" style="--c:${col}">
       <div class="foto"><img src="${esc(fotoUrl(c.sq,state.ele))}" alt="" width="52" height="52" loading="lazy"
         style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(document.createTextNode('${esc(initials(c.nm))}'))"></div>
       <div class="cname">${esc(c.nm)}${candTags(c,final)}
         <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?`<span class="col"> · ${esc(c.col)}</span>`:""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
-      <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs}</div>
+      <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs.replace('class="vs','class="vs vs-desk')}</div>
       <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i><span class="half"></span>${pa!=null?`<span class="poll" style="left:${pa}%" title="Média das pesquisas: ${pf(pa)}"></span>`:""}</div>
+      ${vs.replace('class="vs','class="vs vs-mob')}
       ${started&&!final?needLine(c,i,b.cands,restante(b),{turno:state.ele?.t||"1"}):""}
     </div>`;
   }).join("");
@@ -813,7 +819,7 @@ function renderChart(){
   const top = state.br.cands.slice(0,4);
   const byTime = state.axis!=="pct";
   if(h.length<2){
-    $("chart").innerHTML = `<p class="meta" style="margin:0">A curva começa quando o TSE divulgar a segunda atualização com votos (a partir das 17h de Brasília).</p>`;
+    $("chart").innerHTML = `<p class="meta" style="margin:0">${(state.hist||[]).some(hasVotes) ? "Aguardando a próxima atualização do TSE para desenhar a curva." : "A curva começa quando o TSE divulgar a segunda atualização com votos."}</p>`;
     $("marginChart").innerHTML = ""; renderBoletins(); return;
   }
   const usePolls = pollsApply();
@@ -985,6 +991,7 @@ function renderUfDetail(){
     <div style="min-width:0"><div class="eyebrow">${meta}</div><h2>${UF_NAMES[uf]}</h2></div>
     <button type="button" data-step="1" aria-label="Próximo estado">›</button></div>`;
   if(!d){ $("ufdetail").innerHTML=nav("sem dados ainda")+`<p class="meta">Sem dados para esta UF ainda.</p>`; return; }
+  if(!d.cands.some(c=>c.vap>0)){ $("ufdetail").innerHTML=nav(`${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores`)+`<p class="meta" style="margin:0">Aguardando os primeiros votos deste ${uf==="zz"?"local":"estado"}.</p>`; return; }
   $("ufdetail").innerHTML = nav(`${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores`) +
     d.cands.slice(0,5).map(c=>`<div class="ufrow" style="--c:${colorFor(c.n)}"><span><span class="sw"></span>${esc(c.nm)}</span>
       <b class="num">${pf(c.pv)}</b><div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i></div></div>`).join("");
@@ -992,13 +999,16 @@ function renderUfDetail(){
 
 function ufRows(){
   return UFS.filter(u=>state.ufs[u]).map(u=>{
-    const d=state.ufs[u], a=d.cands[0]||{}, b=d.cands[1]||{};
-    return {uf:u, pst:d.pst, l1:a.nm||"", p1:a.pv||0, n1:a.n, l2:b.nm||"", p2:b.pv||0, n2:b.n, mg:(a.pv||0)-(b.pv||0), te:num(d.e.te)};
+    const d=state.ufs[u], comVotos=d.cands.some(c=>c.vap>0), a=comVotos?d.cands[0]||{}:{}, b=comVotos?d.cands[1]||{}:{};
+    // estado ainda sem votos: sem "colocados" (valores -1 mandam a linha para o fim ao ordenar)
+    return {uf:u, comVotos, pst:d.pst, l1:a.nm||"", p1:comVotos?a.pv||0:-1, n1:a.n, l2:b.nm||"", p2:comVotos?b.pv||0:-1, n2:b.n, mg:comVotos?(a.pv||0)-(b.pv||0):-1, te:num(d.e.te)};
   });
 }
 function renderTable(){
   const rows=ufRows().sort((a,b)=>{ const k=state.sortK; return (a[k]>b[k]?1:a[k]<b[k]?-1:0)*state.sortDir; });
-  $("ufTable").innerHTML = rows.map(r=>`<tr data-uf="${r.uf}">
+  $("ufTable").innerHTML = rows.map(r=> !r.comVotos ? `<tr data-uf="${r.uf}">
+    <td><b>${r.uf==="zz"?"Exterior":r.uf.toUpperCase()}</b></td><td class="r num">${pf(r.pst)}</td>
+    <td colspan="5" class="meta">Aguardando os primeiros votos</td><td class="r num">${nf.format(r.te)}</td></tr>` : `<tr data-uf="${r.uf}">
     <td><b>${r.uf==="zz"?"Exterior":r.uf.toUpperCase()}</b></td><td class="r num">${pf(r.pst)}</td>
     <td><span class="sw" style="--c:${colorFor(r.n1)}"></span>${esc(r.l1)}</td><td class="r num">${pf(r.p1)}</td>
     <td><span class="sw" style="--c:${colorFor(r.n2)}"></span>${esc(r.l2)}</td><td class="r num">${pf(r.p2)}</td>
@@ -1146,11 +1156,14 @@ document.querySelector("#goBusca .chips").addEventListener("click",e=>{
    R    = votos válidos que ainda devem entrar (eleitores das seções não totalizadas × válidos por eleitor nas já totalizadas)
    Rmax = teto: todos os eleitores das seções que faltam votando em candidatos (para "garantido"/"impossível") */
 const pp = x => Math.abs(x).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-const pc1 = x => x.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})+"%";
+const pc1 = x => x>0 && x<0.1 ? "menos de 0,1%" : x.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})+"%";
 function restante(dados){
   const vv=num(dados.v.vv), est=num(dados.e.est), esnt=num(dados.e.esnt);
   return { vv, R: est>0 ? Math.round(esnt*vv/est) : 0, Rmax: esnt };
 }
+// números exatos no computador; abreviados no celular ("57,7 mi") para não poluir
+const nfCompacto = new Intl.NumberFormat("pt-BR",{notation:"compact",maximumFractionDigits:1});
+const nv = n => matchMedia("(max-width:600px)").matches && Math.abs(n)>=10000 ? nfCompacto.format(n) : nf.format(n);
 function needLine(c,i,list,{vv,R,Rmax},{seats=0,turno="1"}={}){
   if(!vv || (!c.vap && i>3)) return "";
   const v=c.vap, out=[];
@@ -1159,28 +1172,28 @@ function needLine(c,i,list,{vv,R,Rmax},{seats=0,turno="1"}={}){
     const lider=list[0]; if(lider && i>0 && 2*lider.vap > vv+Rmax) return ""; // outro candidato já está eleito matematicamente
     if(2*v > vv+Rmax) return `<div class="need num"><b class="up">Eleito matematicamente</b>: passa de 50% mesmo que todos os votos que faltam sejam de outros</div>`;
     else if(2*v+Rmax < vv) out.push(`<b>Sem chance matemática</b> de passar de 50% no 1º turno`);
-    else if(need<=0) out.push(`<b class="up">Acima de 50% da projeção final</b>: ${nf.format(-need+1)} votos de folga sobre a metade dos ~${nf.format(total)} válidos esperados`);
-    else if(R>0 && need<=R) out.push(`Precisa de <b>${nf.format(need)} votos</b> dos ~${nf.format(R)} que faltam apurar (<b>${pc1(need/R*100)}</b> deles) para passar de 50%`);
-    else if(R>0) out.push(`Precisaria de <b>${nf.format(need)} votos</b> para passar de 50%, mais do que os ~${nf.format(R)} que ainda devem ser apurados`);
-    else out.push(`Faltam <b>${nf.format(need)} votos</b> (${pp(50-v/vv*100)} p.p.) para 50% dos válidos`);
-    if(turno==="1" && list.length>2) out.push(vagaLine(v,i,list,2,R,Rmax,"vaga no 2º turno"));
+    else if(need<=0) out.push(`<b class="up">Acima de 50% da projeção final</b>, com ${nv(-need+1)} votos de folga`);
+    else if(R>0 && need<=R) out.push(`Precisa de <b>${nv(need)} votos</b> dos ~${nv(R)} que faltam apurar (<b>${pc1(need/R*100)}</b>) para passar de 50%`);
+    else if(R>0) out.push(`Precisaria de <b>${nv(need)} votos</b> para passar de 50%, mais que os ~${nv(R)} que faltam apurar`);
+    else out.push(`Faltam <b>${nv(need)} votos</b> (${pp(50-v/vv*100)} p.p.) para 50% dos válidos`);
+    if(turno==="1" && list.length>2) out.push(vagaLine(v,i,list,2,R,Rmax,"vaga no 2º turno",false));
   } else {
-    out.push(vagaLine(v,i,list,seats,R,Rmax,"vaga"));
+    out.push(vagaLine(v,i,list,seats,R,Rmax,"vaga",true));
   }
-  return `<div class="need num">${out.join(" · ")}</div>`;
+  return `<div class="need num">${out.filter(Boolean).join(" · ")}</div>`;
 }
 // disputa por posição: os "n" primeiros ficam com a vaga
-function vagaLine(v,i,list,n,R,Rmax,nome){
+function vagaLine(v,i,list,n,R,Rmax,nome,mostraRestante){
   if(!list[n]) return "";
   if(i<n){
     const lead=v-list[n].vap;
     if(lead>Rmax) return `<b class="up">${nome[0].toUpperCase()+nome.slice(1)} garantida matematicamente</b>`;
-    return `<b class="up">Vantagem</b> de ${nf.format(lead)} votos sobre o ${n+1}º${R>0?`, com ~${nf.format(R)} votos ainda a apurar`:""}`;
+    return `<b class="up">${nv(lead)} votos</b> à frente do ${n+1}º${mostraRestante&&R>0?`, com ~${nv(R)} ainda a apurar`:""}`;
   }
   const gap=list[n-1].vap-v+1;
   if(gap>Rmax) return `Sem chance matemática de ${nome}`;
-  if(R>0 && gap>R) return `Precisaria tirar <b>${nf.format(gap)} votos</b> de diferença do ${n}º colocado, mais do que os ~${nf.format(R)} que ainda devem ser apurados`;
-  return `Precisa tirar <b>${nf.format(gap)} votos</b> de diferença do ${n}º colocado${R>0?` nos ~${nf.format(R)} que faltam apurar (${pc1(gap/R*100)} deles, se o rival não receber nenhum)`:""}`;
+  if(R>0 && gap>R) return `Precisaria tirar <b>${nv(gap)} votos</b> do ${n}º colocado, mais que os ~${nv(R)} que faltam`;
+  return `Precisa tirar <b>${nv(gap)} votos</b> do ${n}º colocado${R>0?` (${pc1(gap/R*100)} dos ~${nv(R)} que faltam, se o rival não receber nenhum)`:""}`;
 }
 
 function renderMajoritaria(id,d,{half=false,seats=0}={}){

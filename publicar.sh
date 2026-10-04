@@ -8,6 +8,8 @@ grep -q "const VERSAO = \"$VERSAO\";" index.html || { echo "não consegui carimb
 printf "%s\n" "$VERSAO" > versao.txt
 git add -A
 git commit -q -m "$1"
-git pull -q --rebase
-git push -q
-echo "publicado: versão $VERSAO"
+for tentativa in 1 2 3; do
+  if git pull -q --rebase && git push -q; then echo "publicado: versão $VERSAO"; exit 0; fi
+  echo "envio falhou (tentativa $tentativa); tentando de novo em 5 s..."; sleep 5
+done
+echo "ERRO: não consegui enviar ao GitHub; o commit ficou só local"; exit 1

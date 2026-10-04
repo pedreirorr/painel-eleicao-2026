@@ -451,7 +451,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261004-220522"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261004-221247"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -752,12 +752,15 @@ async function load(){
       throw err;
     }
     showNotice(null);
+    const res = await Promise.allSettled(UFS.map(uf=>getTSE(dataUrl(uf,ele)).then(parse)));
+    res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
+    state.brArquivoSig = assinatura(br.raw);
+    const soma = somaEstados(br, state.ufs);
+    if(soma) br = soma;
     br.cands.forEach(c=>colorFor(c.n));
     state.br = br;
     await updateHistory(br);
     renderStatus(); renderCands(); renderTotals(); renderChart(); renderPolls();
-    const res = await Promise.allSettled(UFS.map(uf=>getTSE(dataUrl(uf,ele)).then(parse)));
-    res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
     renderMap(); renderUfDetail(); renderTable(); renderCmp();
     renderEnv(); // limpa um aviso de falha anterior
     state.lidoEm = Date.now();
@@ -770,13 +773,42 @@ async function load(){
   }
 }
 
+/* ---------- total nacional somado dos estados ----------
+   O TSE às vezes demora a atualizar o arquivo do total nacional (br) enquanto os arquivos de cada
+   estado seguem sendo atualizados. Quando a soma dos 27 estados + exterior tem mais seções
+   totalizadas que o arquivo nacional, o painel usa a soma (mesmas regras de % do TSE). */
+function somaEstados(br, ufs){
+  const lista = UFS.map(u=>ufs[u]).filter(Boolean);
+  if(lista.length < UFS.length) return null;
+  const soma = f => lista.reduce((t,d)=>t+num(f(d)),0);
+  const st = soma(d=>d.s.st), ts = soma(d=>d.s.ts);
+  if(!(st > num(br.s?.st))) return null;
+  const votos = {}; lista.forEach(d=>d.cands.forEach(c=>{ votos[c.n]=(votos[c.n]||0)+c.vap; }));
+  const vv = soma(d=>d.v.vv);
+  const cands = br.cands.map(c=>{ const vap = votos[c.n] ?? 0; let pv = vv ? vap/vv*100 : 0; if(vap>0 && pv<0.01) pv=0.01; return {...c, vap, pv}; })
+    .sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
+  const e = { te:soma(d=>d.e.te), est:soma(d=>d.e.est), esnt:soma(d=>d.e.esnt), c:soma(d=>d.e.c), a:soma(d=>d.e.a) };
+  e.pcn = String(e.est ? e.c/e.est*100 : 0); e.pan = String(e.est ? e.a/e.est*100 : 0);
+  const v = { tv:soma(d=>d.v.tv), vv, vb:soma(d=>d.v.vb), tvn:soma(d=>d.v.tvn||d.v.vn), van:soma(d=>d.v.van), vansj:soma(d=>d.v.vansj) };
+  // horário: a totalização mais recente entre os estados (o exterior usa o fuso local, fica de fora)
+  const quando = d => (d.dt||"").split("/").reverse().join("")+(d.ht||"");
+  // ignora horários no futuro (arquivos que usam fuso local, como PE/Fernando de Noronha)
+  const agora = new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo"}).replace(",","").split(" ");
+  const limite = agora[0].split("/").reverse().join("")+agora[1];
+  const validos = lista.filter(d=>d.raw?.cdabr!=="zz" && quando(d)<=limite);
+  const ult = (validos.length?validos:lista).reduce((m,d)=>quando(d)>quando(m)?d:m);
+  const pst = ts ? st/ts*100 : 0;
+  return { ...br, agregado:true, cands, e, v, pst, s:{...br.s, st:String(st), ts:String(ts)}, dt:ult.dt, ht:ult.ht, dg:ult.dt, hg:ult.ht, tf:"n",
+    raw:{ dt:ult.dt, ht:ult.ht, s:{st:String(st)}, cdabr:"br", agregado:true } };
+}
+
 /* ---------- render ---------- */
 function renderStatus(){
   const b=state.br, s=b.s;
   $("pst").innerHTML = `${pf(b.pst)}<small>${nf.format(num(s.st))} de ${nf.format(num(s.ts))} seções</small>`;
   $("pbar").style.width = Math.min(100,b.pst)+"%";
   const final = b.tf==="s" && b.pst>=100;
-  $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}`;
+  $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}${b.agregado?" · total nacional somado dos estados (o arquivo nacional do TSE está atrasado)":""}`;
   document.title = `${pf(b.pst)} apurado · Presidente 2026`;
   mostraLider("lead", b.cands, c=>colorFor(c.n));
 }
@@ -1464,8 +1496,8 @@ async function checagemRapida(){
       const d = await getTSE(goUrl(state.go.ele, GO.cargos.gov));
       if(assinatura(d) !== assinatura(state.go.data.gov?.raw ?? state.go.data.gov)) refreshAll();
     }else{
-      const d = await getTSE(dataUrl("br", state.ele));
-      if(assinatura(d) !== assinatura(state.br?.raw)) refreshAll();
+      const [d, sp] = await Promise.all([getTSE(dataUrl("br", state.ele)), getTSE(dataUrl("sp", state.ele)).catch(()=>null)]);
+      if(assinatura(d) !== state.brArquivoSig || (sp && assinatura(sp) !== assinatura(state.ufs.sp?.raw))) refreshAll();
     }
   }catch{} finally{ checando = false; }
 }
@@ -1540,7 +1572,7 @@ function avisoTSE(tse){
   if(state.paused || loading || loadingGO || !state.ele) return;
   const estado = state.view!=="br";
   const deles = tse[estado ? GO.uf : "br"];
-  const nossa = estado ? assinatura(state.go.data.gov?.raw) : assinatura(state.br?.raw);
+  const nossa = estado ? assinatura(state.go.data.gov?.raw) : state.brArquivoSig;
   if(deles && deles!==nossa) refreshAll();
 }
 

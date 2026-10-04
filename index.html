@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Apuração Presidente 2026</title>
+<script>try{var t=localStorage.getItem("tema");if(t==="claro"||t==="escuro")document.documentElement.dataset.theme=t==="escuro"?"dark":"light";}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -39,6 +40,7 @@ header{display:grid;gap:4px}
   background:var(--bg);margin-inline:-16px;padding:8px 16px;border-bottom:1px solid var(--line)}
 .toolbar .tabs .seg{min-width:120px;padding:8px 16px;font-weight:600}
 .acts{display:flex;gap:8px;align-items:center}
+button.icon{min-width:38px;padding-inline:10px;font-size:1rem;line-height:1}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button,select,input{font:500 .85rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px}
 button{cursor:pointer}
@@ -114,7 +116,7 @@ table.polltable{min-width:520px}
   .toolbar .tabs{flex:1 1 auto;display:flex}
   .toolbar .tabs .seg{flex:1 1 0;min-width:0;padding:10px 8px;font-size:.92rem}
   .acts #pause,.acts .long{display:none}
-  .acts button{padding:10px 12px}
+  .acts button{padding:10px 12px;min-height:40px}
   .need{font-size:.74rem}
   .cname .col{display:none}
   .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding-inline:14px}
@@ -206,6 +208,7 @@ footer a{color:var(--accent)}
     <div class="acts">
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
+      <button id="tema" type="button" class="icon" aria-label="Mudar tema" title="Mudar tema"><span aria-hidden="true">☾</span></button>
       <button id="refresh" type="button" class="primary" aria-label="Atualizar agora"><span aria-hidden="true">↻</span> Atualizar<span class="long"> agora</span></button>
     </div>
   </nav>
@@ -1220,6 +1223,18 @@ setInterval(()=>{
 state.colors={...POLL_COLORS};
 renderPolls();
 init().then(()=>{ if(location.hash==="#goias") setView("go"); });
+
+/* ---------- tema claro/escuro: segue o sistema até a pessoa escolher; a escolha fica salva no aparelho ---------- */
+(function tema(){
+  const btn=$("tema"), root=document.documentElement, mq=matchMedia("(prefers-color-scheme: dark)");
+  const escuro = () => root.dataset.theme ? root.dataset.theme==="dark" : mq.matches;
+  const mostra = () => { const e=escuro(); btn.firstElementChild.textContent = e ? "☀" : "☾";
+    btn.setAttribute("aria-label", e ? "Usar tema claro" : "Usar tema escuro"); btn.title = btn.getAttribute("aria-label"); };
+  btn.onclick = () => { const novo = escuro() ? "light" : "dark"; root.dataset.theme = novo;
+    try{ localStorage.setItem("tema", novo==="dark" ? "escuro" : "claro"); }catch{} mostra(); };
+  mq.addEventListener?.("change", mostra);
+  mostra();
+})();
 
 /* ---------- pessoas online (Cloudflare Worker + Durable Object) ---------- */
 const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";

@@ -543,13 +543,26 @@ const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">
 const pad = (v,n) => String(v).padStart(n,"0");
 const parseBR = s => { const [d,m,y]=(s||"").split("/").map(Number); return new Date(y,(m||1)-1,d||1); };
 
+// arquivos de resultado: lê a versão assinada (.jws), a mesma que o site oficial do TSE usa,
+// com ?nocache= (blocos de 10 s) para escapar do cache; se falhar, usa o .json equivalente
+const nocache = () => Math.floor(Date.now()/10000)*10000;
+function lerJWS(txt){
+  const corpo = txt.trim().split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+  const bin = atob(corpo + "=".repeat((4 - corpo.length % 4) % 4));
+  return JSON.parse(new TextDecoder("utf-8").decode(Uint8Array.from(bin, c=>c.charCodeAt(0))));
+}
+async function getTSE(url){
+  if(!/-u\.json$/.test(url)) return getJSON(url);
+  try{ return await getJSON(url.replace(/\.json$/,".jws")+"?nocache="+nocache(), true); }
+  catch(err){ return getJSON(url); }
+}
 // leitura com limite de tempo: se o TSE não responder em 20 s, desiste e tenta no próximo ciclo
-async function getJSON(url){
+async function getJSON(url, jws=false){
   const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), 20000);
   try{
     const r = await fetch(url,{cache:"no-store", signal:ctl.signal});
     if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; throw e; }
-    return await r.json();
+    return jws ? lerJWS(await r.text()) : await r.json();
   }catch(err){
     if(err.name==="AbortError") throw new Error("o TSE demorou mais de 20 s para responder");
     throw err;
@@ -667,7 +680,7 @@ async function load(){
   try{
     const ele = state.ele;
     let br;
-    try{ br = parse(await getJSON(dataUrl("br",ele))); }
+    try{ br = parse(await getTSE(dataUrl("br",ele))); }
     catch(err){
       if((err.status===404||err.status===403) && !state.br){ // antes da divulgação; no meio da apuração vira falha comum e mantém os dados
         showNotice(`<b>A eleição está configurada, mas o TSE ainda não divulgou números.</b><p>A divulgação começa após as 17h de Brasília. O painel continua tentando a cada ${REFRESH_S} segundos.</p>${state.env==="oficial"?`<div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`:""}`);
@@ -680,7 +693,7 @@ async function load(){
     state.br = br;
     await updateHistory(br);
     renderStatus(); renderCands(); renderTotals(); renderChart(); renderPolls();
-    const res = await Promise.allSettled(UFS.map(uf=>getJSON(dataUrl(uf,ele)).then(parse)));
+    const res = await Promise.allSettled(UFS.map(uf=>getTSE(dataUrl(uf,ele)).then(parse)));
     res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
     renderMap(); renderUfDetail(); renderTable();
     renderEnv(); // limpa um aviso de falha anterior
@@ -1083,7 +1096,7 @@ async function loadGO(){
   loadingGO = true;
   try{
     const keys=Object.keys(GO.cargos);
-    const res=await Promise.allSettled(keys.map(k=>getJSON(goUrl(ele,GO.cargos[k])).then(parseCargo)));
+    const res=await Promise.allSettled(keys.map(k=>getTSE(goUrl(ele,GO.cargos[k])).then(parseCargo)));
     let ok=0;
     res.forEach((r,i)=>{ if(r.status==="fulfilled"){ state.go.data[keys[i]]=r.value; ok++; } });
     if(!ok){

@@ -25,6 +25,19 @@ def get_json(url):
         return json.load(r)
 
 
+def get_resultado(url_json):
+    """Lê a versão assinada (.jws), a mesma do site oficial, com ?nocache=; se falhar, usa o .json."""
+    import base64
+    try:
+        url = url_json[:-5] + ".jws?nocache=" + str(int(time.time() * 1000))
+        req = urllib.request.Request(url, headers={"User-Agent": "painel-apuracao/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            corpo = r.read().decode().strip().split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(corpo + "=" * (-len(corpo) % 4)).decode("utf-8"))
+    except Exception:
+        return get_json(url_json)
+
+
 def descobrir_eleicao():
     """Mesma regra do painel: eleição federal de 2026 com cargo Presidente, a mais recente já iniciada."""
     cfg = get_json(BASE + "comum/config/ele-c.json")
@@ -89,7 +102,7 @@ def gravador():
             if ele:
                 cd, ciclo = ele[1], ele[2]
                 url = f"{BASE}{ciclo}/{cd}/dados/br/br-c0001-e{int(cd):06d}-u.json"
-                novo = ponto(get_json(url))
+                novo = ponto(get_resultado(url))
                 arq = os.path.join(PASTA, f"historico-{cd}.json")
                 hist = json.load(open(arq, encoding="utf-8")) if os.path.exists(arq) else []
                 ult = hist[-1] if hist else None

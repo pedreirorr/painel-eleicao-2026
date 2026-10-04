@@ -734,7 +734,7 @@ function mergePoint(h,pt){ return mergeHist(h,[pt]); }
 async function updateHistory(b){
   const pt=toPoint(b);
   // 1) histórico gravado pelo servidor local (apuracao_servidor.py), se o painel estiver aberto por ele
-  if(state.env==="oficial" && location.protocol.startsWith("http")){
+  if(state.env==="oficial" && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
     try{
       const r=await fetch(`historico-${state.ele.cd}.json`,{cache:"no-store"});
       if(r.ok){ state.hist=mergePoint(await r.json(),pt); state.histSrc="servidor"; return; }

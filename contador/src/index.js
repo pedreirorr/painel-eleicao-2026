@@ -10,6 +10,12 @@ const ORIGENS = [
 ];
 
 export class Sala extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    // "ping" do painel é respondido pela própria Cloudflare, sem acordar a sala nem contar como requisição
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+  }
+
   async fetch() {
     const { 0: cliente, 1: servidor } = new WebSocketPair();
     // hibernação: conexões paradas não consomem tempo de execução
@@ -41,8 +47,8 @@ export class Sala extends DurableObject {
   }
 
   async webSocketMessage(ws, msg) {
-    // o painel manda "ping" para manter a conexão viva; responde com a contagem atual
-    if (msg === "ping") {
+    // "conta": pedido explícito da contagem atual (usado ao conectar)
+    if (msg === "conta") {
       try { ws.send(JSON.stringify({ online: this.abertas().length })); } catch {}
     }
   }

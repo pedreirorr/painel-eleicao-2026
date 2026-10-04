@@ -1153,7 +1153,7 @@ const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
   const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"pessoa":"pessoas"} online`; };
   function conecta(){
     try{ ws=new WebSocket(ONLINE_WS); }catch{ return; }
-    ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },25000); ws.send("ping"); };
+    ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },45000); ws.send("conta"); };
     ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); }catch{} };
     ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };
   }

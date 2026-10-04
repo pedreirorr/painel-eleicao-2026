@@ -538,6 +538,8 @@ const pf = v => (isFinite(v)?v:0).toLocaleString("pt-BR",{minimumFractionDigits:
 const num = s => +String(s??"0").replace(/\./g,"").replace(",",".")||0;
 // o TSE escreve decimais com vírgula ("7,527528669"); num() é para inteiros e "7,53"
 const dec = s => { const x=parseFloat(String(s??"").replace(",",".")); return isFinite(x)?x:0; };
+// % do candidato como o TSE exibe: quem tem voto aparece com pelo menos 0,01%
+const pctCand = c => { const v = c.pvapn!=null && c.pvapn!=="" ? dec(c.pvapn) : num(c.pvap); return num(c.vap)>0 && v<0.01 ? 0.01 : v; };
 const pctn = (obj,k) => obj && obj[k+"n"]!=null && obj[k+"n"]!=="" ? dec(obj[k+"n"]) : num(obj?.[k]);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = (v,n) => String(v).padStart(n,"0");
@@ -647,7 +649,7 @@ function parse(d){
   const list = [];
   for(const a of carg?.agr||[]) for(const p of a.par||[]) for(const c of p.cand||[]){
     list.push({ n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, col:a.tp==="c"?a.nm:"", vap:num(c.vap),
-      pv:c.pvapn!=null&&c.pvapn!==""?dec(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"", vice:c.vs?.[0]?.nmu||c.vs?.[0]?.nm||"" });
+      pv:pctCand(c), st:c.st||"", e:c.e, dvt:c.dvt||"", vice:c.vs?.[0]?.nmu||c.vs?.[0]?.nm||"" });
   }
   list.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
   return { raw:d, cands:list, s:d.s||{}, e:d.e||{}, v:d.v||{}, pst:pctn(d.s,"pst"), dg:d.dg, hg:d.hg, tf:d.tf, dt:d.dt, ht:d.ht };
@@ -1073,7 +1075,7 @@ function parseCargo(d){
     for(const p of a.par||[]){
       ag.votos += num(p.tvtn)+num(p.tvtl); ag.legenda += num(p.tvtl);
       for(const c of p.cand||[]) cands.push({n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, vap:num(c.vap),
-        pv:c.pvapn!=null&&c.pvapn!==""?dec(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"",
+        pv:pctCand(c), st:c.st||"", e:c.e, dvt:c.dvt||"",
         vices:(c.vs||[]).map(v=>v.nmu||v.nm)});
     }
     agrs.push(ag);

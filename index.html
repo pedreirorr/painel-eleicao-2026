@@ -563,7 +563,7 @@ const parseBR = s => { const [d,m,y]=(s||"").split("/").map(Number); return new 
 
 // arquivos de resultado: lê a versão assinada (.jws), a mesma que o site oficial do TSE usa,
 // com ?nocache= (blocos de 10 s) para escapar do cache; se falhar, usa o .json equivalente
-const nocache = () => Math.floor(Date.now()/10000)*10000;
+const nocache = () => Math.floor(Date.now()/5000)*5000;
 function lerJWS(txt){
   const corpo = txt.trim().split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
   const bin = atob(corpo + "=".repeat((4 - corpo.length % 4) % 4));
@@ -692,7 +692,7 @@ const pollsApply = () => state.env==="oficial" && state.ele && state.ele.t==="1"
 let loading=false;
 async function load(){
   if(loading) return;
-  if(!state.ele){ state.countdown=REFRESH_S; return init(); }
+  if(!state.ele){ state.nextAt=Date.now()+REFRESH_S*1000; return init(); }
   loading=true;
   $("refresh").disabled=true;
   try{
@@ -720,7 +720,7 @@ async function load(){
     $("envPill").innerHTML=`<span class="dot"></span>Falha ao ler o TSE`;
     $("updated").textContent = "Erro na última leitura ("+err.message+"). Tentando de novo.";
   }finally{
-    loading=false; $("refresh").disabled=false; state.countdown=REFRESH_S;
+    loading=false; $("refresh").disabled=false; state.nextAt=Date.now()+REFRESH_S*1000; ultimaChecagem=Date.now();
   }
 }
 
@@ -1120,7 +1120,7 @@ function parseCargo(d){
   if(vv) cands.forEach(c=>{ if(!c.pv && c.vap) c.pv=c.vap/vv*100; });
   cands.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
   agrs.sort((a,b)=>b.votos-a.votos || a.nm.localeCompare(b.nm));
-  return {cands, agrs, nv:num(carg.nv)||1, qe:num(carg.qe), nome:carg.nmn, s:d.s||{}, v:d.v||{}, e:d.e||{},
+  return {raw:d, cands, agrs, nv:num(carg.nv)||1, qe:num(carg.qe), nome:carg.nmn, s:d.s||{}, v:d.v||{}, e:d.e||{},
     pst:pctn(d.s,"pst"), dt:d.dt||d.dg, ht:d.ht||d.hg, tf:d.tf};
 }
 
@@ -1320,15 +1320,44 @@ function refreshAll(){
   if(state.view==="go") loadGO();
 }
 
+/* ---------- relógio de atualização ----------
+   Usa a hora real (não conta "tiques"): o Chrome desacelera os temporizadores de abas em segundo
+   plano, e um contador de tiques transformava 30 s em vários minutos.
+   - leitura completa a cada 30 s;
+   - checagem rápida a cada 10 s só do arquivo principal (Brasil, ou Governador na aba Goiás):
+     se o TSE publicou totalização nova, faz a leitura completa na hora;
+   - ao voltar para a aba, atualiza imediatamente. */
+const CHECK_S = 10;
+let ultimaChecagem = 0, checando = false;
+const assinatura = d => d ? [d.dt||d.dg, d.ht||d.hg, d.s?.st].join("|") : "";
+async function checagemRapida(){
+  if(checando || loading || loadingGO || !state.ele) return;
+  checando = true; ultimaChecagem = Date.now();
+  try{
+    if(state.view==="go" && state.go.ele){
+      const d = await getTSE(goUrl(state.go.ele, GO.cargos.gov));
+      if(assinatura(d) !== assinatura(state.go.data.gov?.raw ?? state.go.data.gov)) refreshAll();
+    }else{
+      const d = await getTSE(dataUrl("br", state.ele));
+      if(assinatura(d) !== assinatura(state.br?.raw)) refreshAll();
+    }
+  }catch{} finally{ checando = false; }
+}
 function tick(){
-  const t = state.paused ? "Atualização automática pausada" : `Próxima leitura em ${state.countdown}s`;
+  const falta = Math.max(0, Math.ceil((state.nextAt - Date.now())/1000));
+  const t = state.paused ? "Atualização automática pausada" : (loading||loadingGO) ? "Lendo o TSE…" : `Próxima leitura em ${falta}s`;
   $("next").textContent = t; $("goNext").textContent = t;
 }
+state.nextAt = Date.now() + REFRESH_S*1000;
 setInterval(()=>{
-  if(state.paused||loading) return tick();
-  state.countdown--; tick();
-  if(state.countdown<=0) refreshAll();
+  tick();
+  if(state.paused || loading) return;
+  if(Date.now() >= state.nextAt) refreshAll();
+  else if(Date.now() - ultimaChecagem >= CHECK_S*1000) checagemRapida();
 },1000);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && !state.paused && Date.now()-ultimaChecagem > 5000) refreshAll();
+});
 
 state.colors={...POLL_COLORS};
 renderPolls();

@@ -81,6 +81,45 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .up{color:var(--accent)} .down{color:var(--bad)}
 table.polltable{min-width:520px}
 .seg.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.view{display:grid;gap:18px;min-width:0}
+.tabs{display:inline-flex;gap:0}
+.tabs .seg{border-radius:0}
+.tabs .seg:first-child{border-radius:6px 0 0 6px}
+.tabs .seg:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
+.prop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+@media (max-width:860px){.prop{grid-template-columns:minmax(0,1fr)}}
+.prop .tablewrap{max-height:520px;overflow-y:auto}
+.prop table{min-width:420px}
+.prop thead th{position:sticky;top:0;background:var(--surface);cursor:default}
+.prop tbody tr{cursor:default}
+.prop td.nm{white-space:normal;min-width:150px}
+.prop td .sub{display:block;font-size:.75rem;color:var(--muted)}
+.search{width:100%;max-width:280px}
+@media (max-width:600px){
+  .wrap{padding-block:14px 32px;gap:14px}
+  header{gap:10px}
+  header .controls{gap:6px}
+  header .controls button{padding:6px 10px}
+  .pill{font-size:.64rem;padding:3px 8px}
+  .apurado{font-size:2rem}
+  .apurado small{display:block;margin:4px 0 0}
+  .panel,.status{padding:14px}
+  .cpct{font-size:1.3rem}
+}
+.search.big{max-width:none;font-size:1rem;padding:11px 14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border-radius:99px;padding:5px 12px;font-size:.8rem}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.results{display:grid;gap:0}
+.res{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.res:first-child{border-top:0}
+.res .rn{font:600 1rem/1.25 var(--display);overflow-wrap:anywhere}
+.res .rs{font-size:.78rem;color:var(--muted)}
+.res .rv{text-align:right}
+.res .rv b{font:700 1.15rem var(--display);display:block}
+.res .ctag{display:inline-block;font:600 .65rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:4px;background:var(--line);color:var(--ink);margin-right:6px;vertical-align:1px}
+.hbar{height:6px;background:var(--line);border-radius:99px;margin-top:4px;min-width:60px}
+.hbar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
 .evo2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:860px){.evo2{grid-template-columns:minmax(0,1fr)}}
 .boletins{max-height:260px;overflow-y:auto}
@@ -134,9 +173,13 @@ footer a{color:var(--accent)}
   <header>
     <div>
       <div class="eyebrow">Eleições Gerais 2026 · dados do TSE</div>
-      <h1>Apuração para Presidente da República</h1>
+      <h1 id="pageTitle">Apuração para Presidente da República</h1>
     </div>
     <div class="controls">
+      <div class="tabs" role="tablist" aria-label="Disputa">
+        <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true">Presidente</button>
+        <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
+      </div>
       <span id="envPill" class="pill">—</span>
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
@@ -146,6 +189,7 @@ footer a{color:var(--accent)}
 
   <div id="notice" class="notice" hidden></div>
 
+  <div id="viewBR" class="view">
   <section class="status" aria-live="polite">
     <div class="status-top">
       <div>
@@ -241,6 +285,47 @@ footer a{color:var(--accent)}
       </table>
     </div>
   </section>
+  </div>
+
+  <div id="viewGO" class="view" hidden>
+    <div id="goNotice" class="notice" hidden></div>
+    <section class="status" aria-live="polite">
+      <div class="status-top">
+        <div>
+          <div class="eyebrow">Seções totalizadas em Goiás</div>
+          <div class="apurado num" id="goPst">—<small id="goPstAbs"></small></div>
+        </div>
+        <div class="meta num"><span id="goUpdated">Aguardando dados</span><span id="goNext"></span></div>
+      </div>
+      <div class="progress"><i id="goBar" style="width:0%"></i></div>
+    </section>
+
+    <section class="panel" id="goBusca">
+      <div class="panel-head"><h2>Buscar candidato</h2><span class="eyebrow">Senado e deputados de Goiás</span></div>
+      <input type="search" id="goQ" class="search big" placeholder="Nome, número ou partido" aria-label="Buscar senador ou deputado" autocomplete="off">
+      <div class="chips" role="group" aria-label="Filtrar por cargo">
+        <button type="button" class="chip on" data-c="todos">Todos</button>
+        <button type="button" class="chip" data-c="sen">Senado</button>
+        <button type="button" class="chip" data-c="df">Dep. Federal</button>
+        <button type="button" class="chip" data-c="de">Dep. Estadual</button>
+      </div>
+      <div id="goResults" class="results"></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel" id="goGov">
+        <div class="panel-head"><h2>Governador</h2><span class="eyebrow">Tracejado = 50% dos válidos</span></div>
+        <div class="cands" id="goGovList"></div>
+      </section>
+      <section class="panel" id="goSen">
+        <div class="panel-head"><h2>Senado</h2><span class="eyebrow" id="goSenVagas">2 vagas · os 2 mais votados</span></div>
+        <div class="cands" id="goSenList"></div>
+      </section>
+    </div>
+
+    <section class="panel" id="goDF"></section>
+    <section class="panel" id="goDE"></section>
+  </div>
 
   <footer>
     Fonte: arquivos públicos de divulgação de resultados do TSE (<a href="https://resultados.tse.jus.br" target="_blank" rel="noopener">resultados.tse.jus.br</a>).
@@ -424,6 +509,7 @@ const fotoUrl = (sq,ele) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.
 /* ---------- descoberta da eleição ---------- */
 async function discover(){
   const cfg = await getJSON(`${envCfg().base}${envCfg().amb}/comum/config/ele-c.json`);
+  state.cfg = cfg;
   const out = [];
   for(const pl of cfg.pl||[]){
     if(!/^ele2026$/.test(pl.c)) continue;
@@ -471,7 +557,7 @@ async function init(){
 }
 
 function switchEnv(env){
-  state.env = env; state.br=null; state.ufs={};
+  state.env = env; state.br=null; state.ufs={}; state.go.ele=null; state.go.data={};
   const u = new URL(location.href);
   if(env==="sim") u.searchParams.set("sim","1"); else u.searchParams.delete("sim");
   try{ history.replaceState(null,"",u); }catch{}
@@ -833,25 +919,209 @@ document.querySelector("thead").addEventListener("click",e=>{
 $("ufTable").addEventListener("click",e=>{ const tr=e.target.closest("tr"); if(tr){ state.selUf=tr.dataset.uf; renderMap(); renderUfDetail(); $("map").scrollIntoView({behavior:"smooth",block:"nearest"}); }});
 
 /* ---------- controles e relógio ---------- */
-$("refresh").onclick=()=>load();
+$("refresh").onclick=()=>refreshAll();
 $("pause").onclick=()=>{ state.paused=!state.paused; $("pause").textContent=state.paused?"Retomar":"Pausar"; tick(); };
 $("turno").onchange=e=>{
   state.ele = state.elections.find(x=>x.cd===e.target.value);
   state.br=null; state.ufs={}; loadColors();
   load();
 };
+/* ---------- Goiás: governador, senado, deputados (só apuração) ---------- */
+const GO = { uf:"go", cargos:{gov:"3", sen:"5", df:"6", de:"7"} };
+state.go = { ele:null, data:{}, q:"", cargo:"todos" };
+state.view = "br";
+let loadingGO = false;
+
+function goElection(){
+  // eleição estadual de 2026 com Governador para GO, no mesmo turno que está sendo exibido para Presidente
+  const out=[];
+  for(const pl of state.cfg?.pl||[]){
+    if(pl.c!=="ele2026") continue;
+    for(const e of pl.e||[]){
+      const abr=(e.abr||[]).find(a=>a.cd==="br"||a.cd===GO.uf);
+      if(abr && (abr.cp||[]).some(c=>c.cd===GO.cargos.gov)) out.push({cd:e.cd,t:e.t,dt:pl.dt,ciclo:pl.c,nm:e.nm});
+    }
+  }
+  const t = state.ele?.t || "1";
+  return out.find(e=>e.t===t) || out[0] || null;
+}
+const goUrl = (ele,cargo) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/dados/${GO.uf}/${GO.uf}-c${pad(cargo,4)}-e${pad(ele.cd,6)}-u.json`;
+const goFoto = (ele,sq) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/fotos/${GO.uf}/${sq}.jpeg`;
+
+function parseCargo(d){
+  const carg=d.carg?.[0]||{};
+  const cands=[], agrs=[];
+  for(const a of carg.agr||[]){
+    const ag={nm:a.nm, com:a.com, tp:a.tp, vag:num(a.vag), votos:0, legenda:0};
+    for(const p of a.par||[]){
+      ag.votos += num(p.tvtn)+num(p.tvtl); ag.legenda += num(p.tvtl);
+      for(const c of p.cand||[]) cands.push({n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, vap:num(c.vap),
+        pv:c.pvapn!=null?parseFloat(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"",
+        vices:(c.vs||[]).map(v=>v.nmu||v.nm)});
+    }
+    agrs.push(ag);
+  }
+  // em alguns arquivos (deputados) o TSE manda o % do candidato zerado: calcula sobre os votos válidos
+  const vv=num(d.v?.vv);
+  if(vv) cands.forEach(c=>{ if(!c.pv && c.vap) c.pv=c.vap/vv*100; });
+  cands.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
+  agrs.sort((a,b)=>b.votos-a.votos || a.nm.localeCompare(b.nm));
+  return {cands, agrs, nv:num(carg.nv)||1, qe:num(carg.qe), nome:carg.nmn, s:d.s||{}, v:d.v||{}, e:d.e||{},
+    pst:pctn(d.s,"pst"), dt:d.dt||d.dg, ht:d.ht||d.hg, tf:d.tf};
+}
+
+async function loadGO(){
+  if(loadingGO) return;
+  if(!state.cfg){ return; }
+  state.go.ele = state.go.ele || goElection();
+  const ele = state.go.ele;
+  if(!ele){ goNotice("Não encontrei a eleição estadual de Goiás na configuração do TSE."); return; }
+  loadingGO = true;
+  try{
+    const keys=Object.keys(GO.cargos);
+    const res=await Promise.allSettled(keys.map(k=>getJSON(goUrl(ele,GO.cargos[k])).then(parseCargo)));
+    let ok=0;
+    res.forEach((r,i)=>{ if(r.status==="fulfilled"){ state.go.data[keys[i]]=r.value; ok++; } });
+    if(!ok){ goNotice(`O TSE ainda não divulgou os arquivos de Goiás. A divulgação começa após as 17h de Brasília; o painel tenta de novo a cada ${REFRESH_S} segundos.`); return; }
+    goNotice(null);
+    renderGO();
+  }catch(err){
+    goNotice("Erro ao ler os dados de Goiás ("+esc(err.message)+"). Tentando de novo.");
+  }finally{ loadingGO=false; }
+}
+function goNotice(html){ const n=$("goNotice"); n.hidden=!html; n.innerHTML=html?`<p>${html}</p>`:""; }
+
+function renderGO(){
+  const D=state.go.data, ref=D.gov||D.sen||D.df||D.de;
+  if(ref){
+    $("goPst").innerHTML=`${pf(ref.pst)}<small>${nf.format(num(ref.s.st))} de ${nf.format(num(ref.s.ts))} seções</small>`;
+    $("goBar").style.width=Math.min(100,ref.pst)+"%";
+    $("goUpdated").textContent=`Última totalização: ${ref.dt||"—"} às ${ref.ht||"—"} · ${nf.format(num(ref.e.te))} eleitores`;
+  }
+  if(D.gov) renderMajoritaria("goGovList", D.gov, {half:true});
+  if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas · os "+D.sen.nv+" mais votados":"vaga · o mais votado"}`; }
+  if(D.df) renderProporcional("goDF","df",D.df);
+  if(D.de) renderProporcional("goDE","de",D.de);
+  renderBusca();
+}
+
+/* busca única: Senado + deputados */
+const CARGO_NOME = {sen:"Senado", df:"Dep. Federal", de:"Dep. Estadual"};
+const fold = s => String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+function renderBusca(){
+  const el=$("goResults"), q=fold(state.go.q.trim()), D=state.go.data;
+  if(!q){ el.innerHTML=`<p class="meta" style="margin:0">Digite pelo menos 2 letras do nome, o número de urna ou a sigla do partido.</p>`; return; }
+  if(q.length<2 && !/^\d+$/.test(q)){ el.innerHTML=`<p class="meta" style="margin:0">Continue digitando…</p>`; return; }
+  const keys = state.go.cargo==="todos" ? ["sen","df","de"] : [state.go.cargo];
+  const hits=[];
+  for(const k of keys){
+    const d=D[k]; if(!d) continue;
+    d.cands.forEach((c,i)=>{
+      if(fold(c.nm).includes(q) || c.n.startsWith(q) || fold(c.sg)===q) hits.push({k,c,rank:i+1,total:d.cands.length,started:d.cands.some(x=>x.vap>0)});
+    });
+  }
+  hits.sort((a,b)=>b.c.vap-a.c.vap || a.c.nm.localeCompare(b.c.nm));
+  const shown=hits.slice(0,80);
+  el.innerHTML = !hits.length ? `<p class="meta" style="margin:0">Nenhum candidato encontrado para “${esc(state.go.q)}”.</p>`
+    : `<div class="meta">${hits.length} encontrado${hits.length>1?"s":""}${hits.length>shown.length?` · mostrando os ${shown.length} mais votados`:""}</div>` +
+      shown.map(({k,c,rank,total,started})=>{
+        const st = c.st && !/^não eleito$/i.test(c.st) ? `<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>` : (c.st?`<span class="tag dim">${esc(c.st)}</span>`:"");
+        return `<div class="res">
+          <div style="min-width:0"><div class="rn"><span class="ctag">${CARGO_NOME[k]}</span>${esc(c.nm)} ${st}</div>
+            <div class="rs num">${esc(c.n)} · ${esc(c.sg)}${started?` · ${rank}º de ${total}`:""}</div></div>
+          <div class="rv num"><b>${pf(c.pv)}</b><span class="rs">${nf.format(c.vap)} votos</span></div>
+        </div>`;
+      }).join("");
+}
+$("goQ").addEventListener("input",e=>{ state.go.q=e.target.value; renderBusca(); });
+document.querySelector("#goBusca .chips").addEventListener("click",e=>{
+  const b=e.target.closest(".chip"); if(!b) return;
+  state.go.cargo=b.dataset.c;
+  document.querySelectorAll("#goBusca .chip").forEach(x=>x.classList.toggle("on",x===b));
+  renderBusca();
+});
+
+function renderMajoritaria(id,d,{half=false,seats=0}={}){
+  const started=d.cands.some(c=>c.vap>0), final=d.tf==="s";
+  $(id).innerHTML=d.cands.map((c,i)=>{
+    const col=PALETTE[i%PALETTE.length];
+    const tags=[candTags(c,final)];
+    if(seats && started && i<seats && !/eleit/i.test(c.st)) tags.push(`<span class="tag">Dentro das vagas</span>`);
+    const sub=[c.n, c.sg, ...c.vices.map((v,j)=>(half?"vice: ":(j?"2º supl.: ":"1º supl.: "))+v)].map(esc).join(" · ");
+    return `<div class="cand${i>=4&&d.cands.length>6?" minor":""}" style="--c:${col}">
+      <div class="foto"><img src="${esc(goFoto(state.go.ele,c.sq))}" alt="" width="52" height="52" loading="lazy" style="width:100%;height:100%;object-fit:cover"
+        onerror="this.replaceWith(document.createTextNode('${esc(initials(c.nm))}'))"></div>
+      <div class="cname">${esc(c.nm)}${tags.join("")}<span class="sub">${sub}</span></div>
+      <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div></div>
+      <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i>${half?'<span class="half"></span>':""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderProporcional(id,key,d){
+  const el=$(id);
+  if(!el.dataset.built){
+    el.innerHTML=`<div class="panel-head"><h2>${key==="df"?"Deputado Federal":"Deputado Estadual"}</h2><span class="eyebrow" data-r="vagas"></span></div>
+      <div class="prop">
+        <div style="min-width:0;display:grid;gap:8px">
+          <div class="eyebrow">Partidos e federações · votos nominais + legenda</div>
+          <div class="tablewrap"><table><thead><tr><th>Partido / federação</th><th class="r">Votos</th><th class="r">%</th><th class="r">Vagas</th></tr></thead><tbody data-r="agr"></tbody></table></div>
+        </div>
+        <div style="min-width:0;display:grid;gap:8px">
+          <div class="eyebrow">60 mais votados · use a busca no topo para achar qualquer candidato</div>
+          <div class="tablewrap"><table><thead><tr><th class="r">#</th><th>Candidato</th><th class="r">Votos</th><th class="r">%</th><th>Situação</th></tr></thead><tbody data-r="cand"></tbody></table></div>
+        </div>
+      </div>`;
+    el.dataset.built="1";
+  }
+  const vv=num(d.v.vv)||1, anyVag=d.agrs.some(a=>a.vag>0);
+  el.querySelector('[data-r="vagas"]').textContent=`${d.nv} vagas${d.qe?` · quociente eleitoral ${nf.format(d.qe)} votos`:""}`;
+  const maxA=Math.max(1,...d.agrs.map(a=>a.votos));
+  el.querySelector('[data-r="agr"]').innerHTML=d.agrs.map(a=>`<tr>
+      <td class="nm"><b>${esc(a.nm)}</b>${a.com&&a.com!==a.nm?`<span class="sub">${esc(a.com)}</span>`:""}<div class="hbar"><i style="width:${a.votos/maxA*100}%"></i></div></td>
+      <td class="r num">${nf.format(a.votos)}${a.legenda?`<span class="sub">${nf.format(a.legenda)} de legenda</span>`:""}</td>
+      <td class="r num">${pf(a.votos/vv*100)}</td>
+      <td class="r num">${anyVag?(a.vag||"—"):"—"}</td></tr>`).join("");
+  const shown=d.cands.slice(0,60).map((c,i)=>({...c,rank:i+1}));
+  el.querySelector('[data-r="cand"]').innerHTML = shown.length ? shown.map(c=>`<tr>
+      <td class="r num">${c.rank}º</td>
+      <td class="nm">${esc(c.nm)}<span class="sub">${esc(c.n)} · ${esc(c.sg)}</span></td>
+      <td class="r num">${nf.format(c.vap)}</td><td class="r num">${pf(c.pv)}</td>
+      <td>${c.st&&!/não eleito/i.test(c.st)?`<span class="tag${/supl/i.test(c.st)?" dim":""}">${esc(c.st)}</span>`:(c.st?`<span class="tag dim">${esc(c.st)}</span>`:"")}</td></tr>`).join("")
+    : `<tr><td colspan="5" class="meta">Nenhum candidato encontrado.</td></tr>`;
+}
+
+function setView(v){
+  state.view=v;
+  $("viewBR").hidden = v!=="br"; $("viewGO").hidden = v!=="go";
+  $("tabBR").classList.toggle("on",v==="br"); $("tabGO").classList.toggle("on",v==="go");
+  $("tabBR").setAttribute("aria-selected",v==="br"); $("tabGO").setAttribute("aria-selected",v==="go");
+  $("pageTitle").textContent = v==="go" ? "Apuração em Goiás" : "Apuração para Presidente da República";
+  $("turno").hidden = v==="go" || state.elections.length<2;
+  try{ history.replaceState(null,"",v==="go"?"#goias":location.pathname+location.search); }catch{}
+  if(v==="go") loadGO();
+}
+$("tabBR").onclick=()=>setView("br");
+$("tabGO").onclick=()=>setView("go");
+
+function refreshAll(){
+  load();
+  if(state.view==="go") loadGO();
+}
+
 function tick(){
-  $("next").textContent = state.paused ? "Atualização automática pausada" : `Próxima leitura em ${state.countdown}s`;
+  const t = state.paused ? "Atualização automática pausada" : `Próxima leitura em ${state.countdown}s`;
+  $("next").textContent = t; $("goNext").textContent = t;
 }
 setInterval(()=>{
   if(state.paused||loading) return tick();
   state.countdown--; tick();
-  if(state.countdown<=0) load();
+  if(state.countdown<=0) refreshAll();
 },1000);
 
 state.colors={...POLL_COLORS};
 renderPolls();
-init();
+init().then(()=>{ if(location.hash==="#goias") setView("go"); });
 </script>
 </body>
 </html>

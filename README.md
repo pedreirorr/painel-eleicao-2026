@@ -12,6 +12,7 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 - Evolução da apuração (por horário ou por % apurado) e diferença entre 1º e 2º colocados
 - Trajetória da média das pesquisas (abril a 3 de outubro de 2026)
 - Resultado por estado e no exterior
+- Aba **Goiás** (`#goias`): Governador, Senado, Deputado Federal e Deputado Estadual, com busca de candidatos
 
 ## Como funciona
 

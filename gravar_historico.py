@@ -11,7 +11,7 @@ Encerra antes se a totalização terminar. Sai com código 3 quando o tempo acab
 apuração ainda não terminou, para o workflow disparar a próxima rodada.
 """
 import json, os, subprocess, sys, time, datetime
-from apuracao_servidor import BASE, descobrir_eleicao, get_resultado, ponto, log
+from apuracao_servidor import BASE, descobrir_eleicao, get_resultado, ponto, ponto_nacional, log
 
 DADOS_DIR = os.environ.get("DADOS_DIR", "dados")
 HORAS = float(os.environ.get("HORAS", "5.8"))
@@ -46,8 +46,7 @@ def main():
                     log(f"Eleição {ele[1]} ({ele[3]}º turno, {ele[0]:%d/%m/%Y})")
             if ele:
                 cd, ciclo = ele[1], ele[2]
-                d = get_resultado(f"{BASE}{ciclo}/{cd}/dados/br/br-c0001-e{int(cd):06d}-u.json")
-                novo = ponto(d)
+                novo, d = ponto_nacional(ciclo, cd)
                 arq = os.path.join(DADOS_DIR, f"historico-{cd}.json")
                 hist = json.load(open(arq, encoding="utf-8")) if os.path.exists(arq) else []
                 ult = hist[-1] if hist else None

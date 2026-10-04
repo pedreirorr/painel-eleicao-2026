@@ -38,6 +38,47 @@ def get_resultado(url_json):
         return get_json(url_json)
 
 
+UFS = ["ac","al","am","ap","ba","ce","df","es","go","ma","mg","ms","mt","pa","pb","pe","pi","pr","rj","rn","ro","rr","rs","sc","se","sp","to","zz"]
+
+
+def ponto_nacional(ciclo, cd):
+    """Ponto do Brasil. Se a soma dos estados + exterior tiver mais seções totalizadas que o arquivo
+    nacional (o TSE às vezes atrasa o br), usa a soma, com as mesmas regras de % do TSE."""
+    from concurrent.futures import ThreadPoolExecutor
+    url = lambda uf: f"{BASE}{ciclo}/{cd}/dados/{uf}/{uf}-c0001-e{int(cd):06d}-u.json"
+    br = get_resultado(url("br"))
+    novo = ponto(br)
+    try:
+        with ThreadPoolExecutor(8) as ex:
+            ufs = list(ex.map(lambda u: get_resultado(url(u)), UFS))
+    except Exception:
+        return novo, br
+    st = sum(inteiro(d["s"]["st"]) for d in ufs)
+    if st <= novo["st"]:
+        return novo, br
+    votos = {}
+    for d in ufs:
+        for a in d["carg"][0].get("agr", []):
+            for p in a.get("par", []):
+                for c in p.get("cand", []):
+                    votos[c["n"]] = votos.get(c["n"], 0) + inteiro(c.get("vap"))
+    vv = sum(inteiro(d["v"].get("vv")) for d in ufs)
+    ts = sum(inteiro(d["s"]["ts"]) for d in ufs)
+    cand = {}
+    for n, v in votos.items():
+        pv = v / vv * 100 if vv else 0.0
+        cand[n] = [v, 0.01 if (v > 0 and pv < 0.01) else round(pv, 9)]
+    # horário: totalização mais recente entre os estados, ignorando horários no futuro (fuso local)
+    agora = (datetime.datetime.utcnow() - datetime.timedelta(hours=3)).strftime("%Y%m%d%H:%M:%S")
+    quando = lambda d: "".join(reversed((d.get("dt") or "").split("/"))) + (d.get("ht") or "")
+    validos = [d for d in ufs if d.get("cdabr") != "zz" and quando(d) <= agora] or ufs
+    ult = max(validos, key=quando)
+    novo = {"dt": ult.get("dt"), "ht": ult.get("ht"), "pst": st / ts * 100 if ts else 0.0, "st": st, "vv": vv,
+            "c": sum(inteiro(d["e"].get("c")) for d in ufs), "lido": datetime.datetime.now().isoformat(timespec="seconds"),
+            "cand": cand, "somado_dos_estados": True}
+    return novo, br
+
+
 def descobrir_eleicao():
     """Mesma regra do painel: eleição federal de 2026 com cargo Presidente, a mais recente já iniciada."""
     cfg = get_json(BASE + "comum/config/ele-c.json")
@@ -102,7 +143,7 @@ def gravador():
             if ele:
                 cd, ciclo = ele[1], ele[2]
                 url = f"{BASE}{ciclo}/{cd}/dados/br/br-c0001-e{int(cd):06d}-u.json"
-                novo = ponto(get_resultado(url))
+                novo, _ = ponto_nacional(ciclo, cd)
                 arq = os.path.join(PASTA, f"historico-{cd}.json")
                 hist = json.load(open(arq, encoding="utf-8")) if os.path.exists(arq) else []
                 ult = hist[-1] if hist else None

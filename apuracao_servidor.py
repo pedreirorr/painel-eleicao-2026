@@ -45,17 +45,32 @@ def descobrir_eleicao():
     return (passadas or achadas)[-1]
 
 
+def dec(x):
+    """Decimal no formato do TSE ("7,527528669" ou "100")."""
+    try:
+        return float(str(x if x not in (None, "") else 0).replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+def inteiro(x):
+    try:
+        return int(str(x or 0).replace(".", ""))
+    except ValueError:
+        return 0
+
+
 def ponto(d):
     cands = {}
     for a in d["carg"][0].get("agr", []):
         for p in a.get("par", []):
             for c in p.get("cand", []):
-                cands[c["n"]] = [int(c["vap"]), float(c.get("pvapn") or c.get("pvap", "0").replace(",", "."))]
+                cands[c["n"]] = [inteiro(c.get("vap")), dec(c.get("pvapn") or c.get("pvap"))]
     s, v, e = d.get("s", {}), d.get("v", {}), d.get("e", {})
     return {
         "dt": d.get("dt") or d.get("dg"), "ht": d.get("ht") or d.get("hg"),
-        "pst": float(s.get("pstn") or 0), "st": int(s.get("st") or 0),
-        "vv": int(v.get("vv") or 0), "c": int(e.get("c") or 0),
+        "pst": dec(s.get("pstn") or s.get("pst")), "st": inteiro(s.get("st")),
+        "vv": inteiro(v.get("vv")), "c": inteiro(e.get("c")),
         "lido": datetime.datetime.now().isoformat(timespec="seconds"),
         "cand": cands,
     }

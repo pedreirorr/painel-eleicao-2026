@@ -498,15 +498,24 @@ const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat("pt-BR");
 const pf = v => (isFinite(v)?v:0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
 const num = s => +String(s??"0").replace(/\./g,"").replace(",",".")||0;
-const pctn = (obj,k) => obj && obj[k+"n"]!=null ? parseFloat(obj[k+"n"]) : num(obj?.[k]);
+// o TSE escreve decimais com vírgula ("7,527528669"); num() é para inteiros e "7,53"
+const dec = s => { const x=parseFloat(String(s??"").replace(",",".")); return isFinite(x)?x:0; };
+const pctn = (obj,k) => obj && obj[k+"n"]!=null && obj[k+"n"]!=="" ? dec(obj[k+"n"]) : num(obj?.[k]);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = (v,n) => String(v).padStart(n,"0");
 const parseBR = s => { const [d,m,y]=(s||"").split("/").map(Number); return new Date(y,(m||1)-1,d||1); };
 
+// leitura com limite de tempo: se o TSE não responder em 20 s, desiste e tenta no próximo ciclo
 async function getJSON(url){
-  const r = await fetch(url,{cache:"no-store"});
-  if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; throw e; }
-  return r.json();
+  const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), 20000);
+  try{
+    const r = await fetch(url,{cache:"no-store", signal:ctl.signal});
+    if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; throw e; }
+    return await r.json();
+  }catch(err){
+    if(err.name==="AbortError") throw new Error("o TSE demorou mais de 20 s para responder");
+    throw err;
+  }finally{ clearTimeout(t); }
 }
 const envCfg = () => ENVS[state.env];
 const dataUrl = (uf,ele) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/dados/${uf}/${uf}-c0001-e${pad(ele.cd,6)}-u.json`;
@@ -587,7 +596,7 @@ function parse(d){
   const list = [];
   for(const a of carg?.agr||[]) for(const p of a.par||[]) for(const c of p.cand||[]){
     list.push({ n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, col:a.tp==="c"?a.nm:"", vap:num(c.vap),
-      pv:c.pvapn!=null?parseFloat(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"", vice:c.vs?.[0]?.nmu||c.vs?.[0]?.nm||"" });
+      pv:c.pvapn!=null&&c.pvapn!==""?dec(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"", vice:c.vs?.[0]?.nmu||c.vs?.[0]?.nm||"" });
   }
   list.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
   return { raw:d, cands:list, s:d.s||{}, e:d.e||{}, v:d.v||{}, pst:pctn(d.s,"pst"), dg:d.dg, hg:d.hg, tf:d.tf, dt:d.dt, ht:d.ht };
@@ -622,7 +631,7 @@ async function load(){
     let br;
     try{ br = parse(await getJSON(dataUrl("br",ele))); }
     catch(err){
-      if(err.status===404||err.status===403){
+      if((err.status===404||err.status===403) && !state.br){ // antes da divulgação; no meio da apuração vira falha comum e mantém os dados
         showNotice(`<b>A eleição está configurada, mas o TSE ainda não divulgou números.</b><p>A divulgação começa após as 17h de Brasília. O painel continua tentando a cada ${REFRESH_S} segundos.</p>${state.env==="oficial"?`<div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`:""}`);
         return;
       }
@@ -636,7 +645,7 @@ async function load(){
     const res = await Promise.allSettled(UFS.map(uf=>getJSON(dataUrl(uf,ele)).then(parse)));
     res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
     renderMap(); renderUfDetail(); renderTable();
-    $("envPill").classList.remove("err");
+    renderEnv(); // limpa um aviso de falha anterior
   }catch(err){
     $("envPill").className="pill err";
     $("envPill").innerHTML=`<span class="dot"></span>Falha ao ler o TSE`;
@@ -978,7 +987,7 @@ function parseCargo(d){
     for(const p of a.par||[]){
       ag.votos += num(p.tvtn)+num(p.tvtl); ag.legenda += num(p.tvtl);
       for(const c of p.cand||[]) cands.push({n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, vap:num(c.vap),
-        pv:c.pvapn!=null?parseFloat(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"",
+        pv:c.pvapn!=null&&c.pvapn!==""?dec(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"",
         vices:(c.vs||[]).map(v=>v.nmu||v.nm)});
     }
     agrs.push(ag);
@@ -1004,7 +1013,13 @@ async function loadGO(){
     const res=await Promise.allSettled(keys.map(k=>getJSON(goUrl(ele,GO.cargos[k])).then(parseCargo)));
     let ok=0;
     res.forEach((r,i)=>{ if(r.status==="fulfilled"){ state.go.data[keys[i]]=r.value; ok++; } });
-    if(!ok){ goNotice(`O TSE ainda não divulgou os arquivos de Goiás. A divulgação começa após as 17h de Brasília; o painel tenta de novo a cada ${REFRESH_S} segundos.`); return; }
+    if(!ok){
+      const naoPublicado = res.every(r=>r.reason?.status===404||r.reason?.status===403);
+      goNotice(naoPublicado
+        ? `O TSE ainda não divulgou os arquivos de Goiás. A divulgação começa após as 17h de Brasília; o painel tenta de novo a cada ${REFRESH_S} segundos.`
+        : `Falha ao ler o TSE (${esc(res[0].reason?.message||"erro de conexão")}). ${Object.keys(state.go.data).length?"Mostrando os últimos dados recebidos; ":""}tentando de novo a cada ${REFRESH_S} segundos.`);
+      return;
+    }
     goNotice(null);
     renderGO();
   }catch(err){

@@ -43,6 +43,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .pill{display:inline-flex;align-items:center;gap:6px;font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
 .pill.sim{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .pill.err{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.topline{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:2px}
 .pill.online{background:var(--line);color:var(--ink)}
 .pill.online .dot{color:var(--accent)}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
@@ -174,7 +175,7 @@ footer a{color:var(--accent)}
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow">Eleições Gerais 2026 · dados do TSE</div>
+      <div class="topline"><span class="eyebrow">Eleições Gerais 2026 · dados do TSE</span><span id="online" class="pill online" hidden title="Pessoas com o painel aberto agora"><span class="dot"></span><span id="onlineN">—</span></span></div>
       <h1 id="pageTitle">Apuração para Presidente da República</h1>
     </div>
     <div class="controls">
@@ -183,7 +184,6 @@ footer a{color:var(--accent)}
         <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
       </div>
       <span id="envPill" class="pill">—</span>
-      <span id="online" class="pill online" hidden title="Pessoas com o painel aberto agora"><span class="dot"></span><span id="onlineN">—</span></span>
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
       <button id="refresh" type="button" class="primary">Atualizar agora</button>

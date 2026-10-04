@@ -170,7 +170,20 @@ table.polltable tbody tr{cursor:default}
 .uf.sel{outline:2px solid var(--ink);outline-offset:1px}
 .mapwrap{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:860px){.mapwrap{grid-template-columns:minmax(0,1fr)}}
-.ufdetail{display:grid;gap:8px;min-width:0}
+.ufdetail{display:grid;gap:8px;min-width:0;scroll-margin-top:72px}
+.ufnav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.ufnav button{width:40px;height:40px;padding:0;font-size:1.3rem;line-height:1;border-radius:50%}
+.ufpick{display:none}
+.ufchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:99px;font:600 .82rem var(--mono)}
+.ufchip i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block}
+.ufchip.sel{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+@media (max-width:860px){
+  .mapwrap{gap:12px}
+  .ufpick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding:2px 14px 4px;order:1}
+  .ufpick::-webkit-scrollbar{display:none}
+  .ufdetail{order:2}
+  .map{order:3;max-width:340px;justify-self:center;width:100%}
+}
 .ufrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.88rem}
 .ufrow .bar{grid-column:1 / 3;height:6px}
 
@@ -296,6 +309,7 @@ footer a{color:var(--accent)}
       <span class="eyebrow">Cor = quem lidera · tom = quanto já foi apurado</span>
     </div>
     <div class="mapwrap">
+      <div class="ufpick" id="ufPick" role="group" aria-label="Escolher estado"></div>
       <div class="map" id="map"></div>
       <div class="ufdetail" id="ufdetail"></div>
     </div>
@@ -937,13 +951,41 @@ function renderMap(){
       data-uf="${uf}" title="${UF_NAMES[uf]}">${uf==="zz"?"EXT":uf.toUpperCase()}<small>${sub}</small></button>`);
   }
   $("map").innerHTML=cells.join("");
+  // seletor em linha (aparece no celular)
+  $("ufPick").innerHTML = ORDEM_UF.map(uf=>{ const d=state.ufs[uf], cor=d&&d.cands[0]&&d.cands[0].vap>0?colorFor(d.cands[0].n):"";
+    return `<button type="button" class="ufchip${uf===state.selUf?" sel":""}" data-uf="${uf}" aria-pressed="${uf===state.selUf}" title="${UF_NAMES[uf]}"><i${cor?` style="background:${cor}"`:""}></i>${uf==="zz"?"EXT":uf.toUpperCase()}</button>`; }).join("");
 }
-$("map").addEventListener("click",e=>{ const b=e.target.closest("[data-uf]"); if(b){ state.selUf=b.dataset.uf; renderMap(); renderUfDetail(); }});
+// ordem para as setas e o seletor: alfabética pelo nome, exterior no fim
+const ORDEM_UF = UFS.filter(u=>u!=="zz").sort((a,b)=>UF_NAMES[a].localeCompare(UF_NAMES[b],"pt-BR")).concat("zz");
+const celular = () => matchMedia("(max-width:860px)").matches;
+function selecionaUF(uf,{levarAoResultado=false}={}){
+  state.selUf=uf; renderMap(); renderUfDetail();
+  const chip=$("ufPick").querySelector(`[data-uf="${uf}"]`), box=$("ufPick");
+  if(chip && box.offsetParent) box.scrollTo({left: chip.offsetLeft - box.clientWidth/2 + chip.offsetWidth/2, behavior:"smooth"});
+  if(levarAoResultado && celular()){
+    // leva o seletor + resultado para logo abaixo da barra presa no topo
+    const alvo=$("ufPick"), barra=document.querySelector(".toolbar").getBoundingClientRect().height;
+    window.scrollTo({top: window.scrollY + alvo.getBoundingClientRect().top - barra - 8, behavior:"instant"});
+  }
+}
+$("map").addEventListener("click",e=>{ const b=e.target.closest("[data-uf]"); if(b) selecionaUF(b.dataset.uf,{levarAoResultado:true}); });
+$("ufPick").addEventListener("click",e=>{ const b=e.target.closest("[data-uf]"); if(b) selecionaUF(b.dataset.uf); });
+$("ufdetail").addEventListener("click",e=>{ const b=e.target.closest("[data-step]"); if(!b) return;
+  const i=ORDEM_UF.indexOf(state.selUf), n=ORDEM_UF.length; selecionaUF(ORDEM_UF[(i+ +b.dataset.step+n)%n]); });
+// deslizar o dedo sobre o resultado troca de estado
+(function(){ let x0=null,y0=0; const el=$("ufdetail");
+  el.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+  el.addEventListener("touchend",e=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
+    if(Math.abs(dx)>60 && Math.abs(dy)<40){ const i=ORDEM_UF.indexOf(state.selUf), n=ORDEM_UF.length; selecionaUF(ORDEM_UF[(i+(dx<0?1:-1)+n)%n]); } },{passive:true});
+})();
 
 function renderUfDetail(){
   const uf=state.selUf, d=state.ufs[uf];
-  if(!d){ $("ufdetail").innerHTML=`<h2>${UF_NAMES[uf]}</h2><p class="meta">Sem dados para esta UF ainda.</p>`; return; }
-  $("ufdetail").innerHTML = `<div><div class="eyebrow">${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores</div><h2>${UF_NAMES[uf]}</h2></div>` +
+  const nav = (meta) => `<div class="ufnav"><button type="button" data-step="-1" aria-label="Estado anterior">‹</button>
+    <div style="min-width:0"><div class="eyebrow">${meta}</div><h2>${UF_NAMES[uf]}</h2></div>
+    <button type="button" data-step="1" aria-label="Próximo estado">›</button></div>`;
+  if(!d){ $("ufdetail").innerHTML=nav("sem dados ainda")+`<p class="meta">Sem dados para esta UF ainda.</p>`; return; }
+  $("ufdetail").innerHTML = nav(`${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores`) +
     d.cands.slice(0,5).map(c=>`<div class="ufrow" style="--c:${colorFor(c.n)}"><span><span class="sw"></span>${esc(c.nm)}</span>
       <b class="num">${pf(c.pv)}</b><div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i></div></div>`).join("");
 }
@@ -967,7 +1009,8 @@ document.querySelector("thead").addEventListener("click",e=>{
   const th=e.target.closest("th"); if(!th) return;
   const k=th.dataset.k; state.sortDir = state.sortK===k ? -state.sortDir : (k==="uf"||k==="l1"||k==="l2"?1:-1); state.sortK=k; renderTable();
 });
-$("ufTable").addEventListener("click",e=>{ const tr=e.target.closest("tr"); if(tr){ state.selUf=tr.dataset.uf; renderMap(); renderUfDetail(); $("map").scrollIntoView({behavior:"smooth",block:"nearest"}); }});
+$("ufTable").addEventListener("click",e=>{ const tr=e.target.closest("tr"); if(!tr) return;
+  selecionaUF(tr.dataset.uf,{levarAoResultado:true}); if(!celular()) $("map").scrollIntoView({behavior:"smooth",block:"nearest"}); });
 
 /* ---------- controles e relógio ---------- */
 $("refresh").onclick=()=>refreshAll();

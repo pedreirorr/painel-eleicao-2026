@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apuração Presidente 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: painel de apuração — faixa de status, placar de candidatos + totais, cartograma por UF e curva da apuração */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#14201c; --muted:#5d6b66; --line:#dbe2df;
+  --accent:#0b7a5c; --accent-soft:#d9efe7; --warn:#a86a00; --bad:#b3261e;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#17201d; --ink:#e6eeeb; --muted:#93a39d; --line:#2a3632;
+  --accent:#3fc59a; --accent-soft:#163a2f; --warn:#e0a640; --bad:#f2786f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#17201d; --ink:#e6eeeb; --muted:#93a39d; --line:#2a3632;
+  --accent:#3fc59a; --accent-soft:#163a2f; --warn:#e0a640; --bad:#f2786f; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:grid;gap:18px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.15rem;font-weight:600}
+.eyebrow{font:500 .72rem var(--mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input{font:500 .85rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+.pill.sim{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.err{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.live .dot{animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.live .dot{animation:none}.bar i{transition:none!important}}
+
+.status{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px}
+.status-top{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;justify-content:space-between}
+.apurado{font:700 2.4rem/1 var(--display)}
+.apurado small{font:500 .9rem var(--body);color:var(--muted);margin-left:6px}
+.progress{height:10px;background:var(--line);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .6s}
+.meta{color:var(--muted);font-size:.85rem;display:flex;flex-wrap:wrap;gap:4px 16px}
+.notice{border:1px dashed var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);display:grid;gap:8px}
+.notice p{margin:0;max-width:72ch}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+.wrap>*{min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+
+.cands{display:grid;gap:10px}
+.cand{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding-block:8px;border-top:1px solid var(--line)}
+.cand:first-child{border-top:0}
+.foto{width:52px;height:52px;border-radius:50%;object-fit:cover;background:var(--line);border:3px solid var(--c);grid-row:span 2;display:grid;place-items:center;font:700 1rem var(--display);color:var(--muted);overflow:hidden}
+.cname{font:600 1.05rem/1.2 var(--display);min-width:0;overflow-wrap:anywhere}
+.cname .sub{display:block;font:400 .78rem var(--body);color:var(--muted)}
+.cpct{font:700 1.5rem/1 var(--display);text-align:right}
+.cvotes{font:.8rem var(--mono);color:var(--muted);text-align:right}
+.bar{grid-column:2 / 4;position:relative;height:8px;background:var(--line);border-radius:99px}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--c);transition:width .6s}
+.bar .half{position:absolute;left:50%;top:-4px;bottom:-4px;border-left:1.5px dashed var(--muted)}
+.bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
+.vs{font:.75rem var(--mono);color:var(--muted)}
+.vs b{font-weight:600}
+.up{color:var(--accent)} .down{color:var(--bad)}
+table.polltable{min-width:520px}
+.seg.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.evo2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.evo2{grid-template-columns:minmax(0,1fr)}}
+.boletins{max-height:260px;overflow-y:auto}
+.boletins table{min-width:420px}
+.boletins thead th{position:sticky;top:0;background:var(--surface)}
+table.polltable th{cursor:default}
+table.polltable tbody tr{cursor:default}
+.tag{display:inline-block;margin-left:6px;font:600 .65rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:4px;vertical-align:middle;background:var(--accent-soft);color:var(--accent)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.dim{background:var(--line);color:var(--muted)}
+.cand.minor .cpct{font-size:1.15rem}
+.cand.minor .foto{width:40px;height:40px;border-width:2px;justify-self:center}
+
+.totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.t{display:grid;gap:2px}
+.t b{font:700 1.25rem var(--display)}
+.t span{font-size:.8rem;color:var(--muted)}
+.stack{display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--line)}
+.stack i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.78rem;color:var(--muted)}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.map{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:420px}
+.uf{aspect-ratio:1;max-width:100%;border-radius:6px;display:grid;place-items:center;align-content:center;font:700 .82rem var(--display);color:var(--ink);background:var(--line);border:0;padding:0;position:relative;cursor:pointer}
+.uf small{font:500 .62rem var(--mono);opacity:.85}
+.uf.on{color:#fff}
+.uf.sel{outline:2px solid var(--ink);outline-offset:1px}
+.mapwrap{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.mapwrap{grid-template-columns:minmax(0,1fr)}}
+.ufdetail{display:grid;gap:8px;min-width:0}
+.ufrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.88rem}
+.ufrow .bar{grid-column:1 / 3;height:6px}
+
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:560px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font:500 .7rem var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);cursor:pointer;user-select:none}
+td.r,th.r{text-align:right}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--accent-soft)}
+.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c)}
+
+svg text{fill:var(--muted);font:11px var(--mono)}
+.chart{width:100%;height:auto;display:block}
+footer{color:var(--muted);font-size:.8rem;max-width:80ch}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Eleições Gerais 2026 · dados do TSE</div>
+      <h1>Apuração para Presidente da República</h1>
+    </div>
+    <div class="controls">
+      <span id="envPill" class="pill">—</span>
+      <select id="turno" aria-label="Turno"></select>
+      <button id="pause" type="button">Pausar</button>
+      <button id="refresh" type="button" class="primary">Atualizar agora</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section class="status" aria-live="polite">
+    <div class="status-top">
+      <div>
+        <div class="eyebrow">Seções totalizadas</div>
+        <div class="apurado num" id="pst">—<small id="pstAbs"></small></div>
+      </div>
+      <div class="meta num">
+        <span id="updated">Aguardando dados</span>
+        <span id="next"></span>
+      </div>
+    </div>
+    <div class="progress"><i id="pbar" style="width:0%"></i></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Votos válidos</h2>
+        <span class="eyebrow">Tracejado = 50% · traço escuro = média das pesquisas</span>
+      </div>
+      <div class="cands" id="cands"></div>
+    </section>
+
+    <div style="display:grid;gap:18px;min-width:0">
+      <section class="panel">
+        <h2>Comparecimento</h2>
+        <div class="totals num" id="totals"></div>
+        <div class="stack" id="stack"></div>
+        <div class="legend" id="stackLegend"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Evolução da apuração</h2>
+        <div class="meta" id="histSrc"></div>
+      </div>
+      <div class="controls" role="group" aria-label="Eixo horizontal">
+        <button type="button" id="axTime" class="seg on">Por horário</button>
+        <button type="button" id="axPct" class="seg">Por % apurado</button>
+      </div>
+    </div>
+    <div id="chart"></div>
+    <div class="evo2">
+      <div style="min-width:0;display:grid;gap:8px">
+        <div class="eyebrow" id="marginTitle">Diferença entre 1º e 2º colocados</div>
+        <div id="marginChart"></div>
+      </div>
+      <div style="min-width:0;display:grid;gap:8px">
+        <div class="eyebrow">Atualizações do TSE</div>
+        <div class="tablewrap boletins"><table class="polltable"><thead id="bolHead"></thead><tbody id="bolBody"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Trajetória das pesquisas</h2>
+        <div class="meta">Média móvel de 14 dias (última pesquisa de cada instituto), em % dos votos válidos. O losango no fim mostra a urna agora.</div>
+      </div>
+      <span class="eyebrow" id="pollCount"></span>
+    </div>
+    <div id="pollChart"></div>
+    <div class="tablewrap">
+      <table class="polltable">
+        <thead><tr><th>Candidato</th><th class="r">Média final</th><th class="r">Faixa dos institutos</th><th class="r">Urna agora</th><th class="r">Urna − média</th></tr></thead>
+        <tbody id="pollTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Por estado</h2>
+      <span class="eyebrow">Cor = quem lidera · tom = quanto já foi apurado</span>
+    </div>
+    <div class="mapwrap">
+      <div class="map" id="map"></div>
+      <div class="ufdetail" id="ufdetail"></div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-k="uf">UF</th><th data-k="pst" class="r">Seções</th>
+          <th data-k="l1">1º colocado</th><th data-k="p1" class="r">%</th>
+          <th data-k="l2">2º colocado</th><th data-k="p2" class="r">%</th>
+          <th data-k="mg" class="r">Margem</th><th data-k="te" class="r">Eleitores</th>
+        </tr></thead>
+        <tbody id="ufTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Fonte: arquivos públicos de divulgação de resultados do TSE (<a href="https://resultados.tse.jus.br" target="_blank" rel="noopener">resultados.tse.jus.br</a>).
+    O painel atualiza sozinho a cada 30 segundos. Percentuais calculados sobre votos válidos, como faz o TSE.
+    Pesquisas: levantamentos registrados no TSE e compilados na <a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Brazilian_presidential_election" target="_blank" rel="noopener">Wikipedia</a> (abril a 3 de outubro de 2026),
+    convertidos para votos válidos excluindo brancos, nulos e indecisos.
+    A curva de evolução usa o histórico gravado pelo apuracao_servidor.py quando o painel é aberto por ele; caso contrário, usa as leituras feitas neste navegador.
+  </footer>
+</div>
+
+<script>
+const ENVS = {
+  oficial: { base:"https://resultados.tse.jus.br/", amb:"oficial", label:"Oficial" },
+  sim:     { base:"https://resultados-sim.tse.jus.br/", amb:"simulado/simulado2026", label:"Simulado TSE" }
+};
+const UFS = ["ac","al","am","ap","ba","ce","df","es","go","ma","mg","ms","mt","pa","pb","pe","pi","pr","rj","rn","ro","rr","rs","sc","se","sp","to","zz"];
+const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce:"Ceará",df:"Distrito Federal",es:"Espírito Santo",go:"Goiás",ma:"Maranhão",mg:"Minas Gerais",ms:"Mato Grosso do Sul",mt:"Mato Grosso",pa:"Pará",pb:"Paraíba",pe:"Pernambuco",pi:"Piauí",pr:"Paraná",rj:"Rio de Janeiro",rn:"Rio Grande do Norte",ro:"Rondônia",rr:"Roraima",rs:"Rio Grande do Sul",sc:"Santa Catarina",se:"Sergipe",sp:"São Paulo",to:"Tocantins",zz:"Exterior"};
+// cartograma: [coluna, linha]
+const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
+const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
+const REFRESH_S = 30;
+
+/* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
+// colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
+const POLL_CANDS = [["13","Lula"],["22","Flávio Bolsonaro"],["55","Ronaldo Caiado"],["30","Zema"],["14","Renan Santos"],["70","Augusto Cury"]];
+const POLL_COLORS = {"13":"#d1462f","22":"#1f6fd1","14":"#e3a21a","55":"#1b9e77","70":"#7a4cc2","30":"#c2407e"};
+const POLLS_CSV = `AtlasIntel,2026-10-02,46.7,43.8,1.4,0.3,4.6,2.1,0.6
+Futura,2026-10-03,40.5,42.5,3.7,0.8,2.6,3.9,2.6
+Datafolha,2026-10-03,42,40,4,0,3,3,7
+Quaest,2026-10-03,40,38,3,0,3,3,13
+Palver,2026-10-03,43,47,1,0,7,1,0
+PoderData,2026-10-02,42,41,2,1,3,3,6
+MDA,2026-10-02,43.1,38,3,0.8,1.5,3.2,9.7
+Vox Brasil,2026-10-01,40.4,41.2,3.3,1.3,2.2,1.2,10.2
+Datafolha,2026-09-30,42,38,3,1,3,4,7
+Real Time,2026-09-30,43,39,3,1,4,3,6
+Indexa,2026-09-29,39,34,4,1,3,4,11
+Futura,2026-09-29,39.4,42.2,4,1.6,3.2,3.8,5
+Vox Brasil,2026-09-28,41.4,37.8,3.8,1.8,2.7,2.2,10.3
+Ideia,2026-09-28,39.4,38.4,4.4,3.5,4.5,6.7,2.2
+AtlasIntel,2026-09-28,45.3,42.2,1.8,0.9,5.2,2.0,2.1
+Nexus,2026-09-27,42,37,5,1,4,5,5
+Quaest,2026-09-27,39,34,4,1,3,4,15
+Palver,2026-09-27,44,44,1,1,8,1,2
+Datafolha,2026-09-24,40,36,4,1,3,5,7
+Futura,2026-09-24,38.4,40.4,5.7,0.9,2.4,5.6,5.3
+PoderData,2026-09-23,41,39,2,1,3,6,6
+Palver,2026-09-23,43,43,1,1,8,2,2
+Real Time,2026-09-23,41,37,2,1,6,6,6
+AtlasIntel,2026-09-22,45.8,43.4,1.3,0.9,4.5,2.1,1.2
+Nexus,2026-09-20,40,37,5,1,3,6,6
+Quaest,2026-09-20,37,33,4,1,3,6,15
+Palver,2026-09-20,41,42,1,1,11,2,1
+Datafolha,2026-09-16,39,36,4,2,3,6,9
+PoderData,2026-09-16,37,36,3,1,3,8,6
+AtlasIntel,2026-09-16,44.1,41.7,1.7,1.1,5.1,3.5,2.1
+Futura,2026-09-15,38.3,37.7,4.5,1,3.4,6.5,6.1
+Nexus,2026-09-13,42,37,5,1,2,6,6
+Quaest,2026-09-13,36,31,4,1,4,7,17
+Indexa,2026-09-13,38,34,4,1,3,6,14
+MDA,2026-09-13,40.5,30.4,3,1,2.7,6,13.5
+Datafolha,2026-09-10,39,35,4,2,3,6,10
+Futura,2026-09-10,39.2,33.6,4.4,0.7,4.3,6.4,8.3
+PoderData,2026-09-09,38,36,2,1,3,10,4
+AtlasIntel,2026-09-09,43,37.4,1.1,2.1,6.5,6.6,1
+Palver,2026-09-07,40,39,1,1,11,4,2
+Ideia,2026-09-07,38.4,37.3,4,1.5,4,6.6,5.3
+Nexus,2026-09-07,39,35,4,1,4,9,5
+Quaest,2026-09-06,36,29,3,2,3,8,18
+Datafolha,2026-09-02,38,33,4,2,3,8,9
+PoderData,2026-09-02,37,34,2,1,3,10,7
+Quaest,2026-09-01,37,29,1,1,3,10,18
+Futura,2026-09-01,38.7,33.6,3.5,1.6,2.8,9.9,6.1
+Real Time,2026-08-31,38,30,4,2,7,11,6
+Nexus,2026-08-30,39,33,5,1,3,11,6
+AtlasIntel,2026-08-30,43.4,33.7,3.3,1.0,7.6,7.8,0.3
+Vox Brasil,2026-08-27,37.1,34.8,5,2.8,3.3,2.6,10.3
+PoderData,2026-08-26,38,35,4,2,4,4,7
+Nexus,2026-08-23,41,37,5,3,3,2,8
+Indexa,2026-08-23,39,34,5,1,4,1,16
+Datafolha,2026-08-20,39,33,5,3,4,2,10
+Nexus,2026-08-16,41,36,5,4,4,1,7
+Quaest,2026-08-13,38,31,4,2,4,2,18
+PoderData,2026-08-12,41,35,4,3,4,3,6
+Nexus,2026-08-09,40,35,5,3,4,1,8
+MDA,2026-08-09,42.4,28.7,4,3.3,2.8,1.2,14
+Futura,2026-08-07,38.8,34.1,5.9,3.6,3.6,1.2,11
+Palver,2026-08-07,44,40,2,1,10,0,1
+Quaest,2026-08-03,39,30,4,2,4,1,18
+Ideia,2026-08-03,43,35,5.7,2.6,4.7,1.7,6
+Nexus,2026-08-02,41,37,5,3,4,1,7
+PoderData,2026-07-29,41,35,5,3,4,3,9
+Vox Brasil,2026-07-28,40.5,31.2,5.5,3.2,3,1.1,11.9
+AtlasIntel,2026-07-27,44.9,35.8,3.1,2.8,7.8,1.6,1.6
+Nexus,2026-07-26,42,33,6,3,5,2,8
+Datafolha,2026-07-23,40,32,4,3,3,2,11
+Real Time,2026-07-20,40,33,7,2,9,1,6
+Indexa,2026-07-19,41,30,6,3,3,1,15
+PoderData,2026-07-15,40,34,4,4,6,3,10
+Quaest,2026-07-13,40,28,4,2,3,1,19
+Nexus,2026-07-12,40,34,5,4,4,2,9
+Futura,2026-07-11,40.1,36.8,5,3.7,2.6,1.1,8.7
+Ideia,2026-07-06,40.4,32,4,2.5,2,1.5,13.6
+AtlasIntel,2026-06-30,46.3,36.6,2.9,2,7.8,0.5,1.2
+Nexus,2026-06-28,42,34,5,3,4,1,8
+Vox Brasil,2026-06-25,38.3,32.2,5.1,2.8,2.5,0.7,14.3
+PoderData,2026-06-24,40,36,4,3,4,3,8
+Indexa,2026-06-20,42,31,5,3,3,1,14
+Datafolha,2026-06-18,41,31,3,2,3,2,11
+Nexus,2026-06-14,42,33,4,2,4,2,8
+MDA,2026-06-14,41.8,28.2,4,2.8,2,1.8,14.9
+Futura,2026-06-12,41.6,34.1,4.5,3.5,2.3,0.9,10
+Quaest,2026-06-08,39,29,3,2,3,1,19
+Vox Brasil,2026-06-03,42.1,33.6,6.9,5.1,3.1,0.5,5.2
+Real Time,2026-05-30,38,31,6,4,6,1,7
+PoderData,2026-05-28,40,35,3,4,3,3,9
+Indexa,2026-05-24,39,30,5,3,2,0,18
+Nexus,2026-05-24,40,35,5,4,3,1,9
+Datafolha,2026-05-22,40,31,4,3,3,2,12
+Futura,2026-05-20,42.7,35.6,3.3,3.9,1.7,0.9,10.6
+Vox Brasil,2026-05-19,41.5,32.1,5.9,4.1,1.5,0.3,14.3
+AtlasIntel,2026-05-18,47,34.3,2.7,5.2,6.9,0.4,3.3
+Datafolha,2026-05-13,38,35,3,3,2,2,12
+Vox Brasil,2026-05-12,35.1,37.8,4.3,4.5,1.8,0.8,15
+Quaest,2026-05-11,39,33,4,4,2,1,15
+Ideia,2026-05-05,40,36,5.6,3,1.4,1.5,9.1
+Real Time,2026-05-04,40,34,5,4,3,1,11
+AtlasIntel,2026-04-27,46.6,39.7,3.3,3.1,5.3,1.1,0.6
+Nexus,2026-04-26,41,36,3,4,3,2,8
+Quaest,2026-04-13,37,32,6,3,2,2,16
+Futura,2026-04-11,39.8,37.3,4.8,2.9,1.4,1.3,11.6
+Ideia,2026-04-07,40.4,37,6.5,3,3,,9.5
+Ideia,2026-05-27,38.5,31.5,5.5,2.4,2.1,,15.6
+Futura,2026-05-08,38.1,37.4,5.7,,2.3,1.5,12.9
+MDA,2026-04-12,39.2,30.2,4.6,3.3,1.8,,19.3
+Datafolha,2026-04-09,39,35,5,4,2,,14`;
+const DAY = 864e5;
+const POLLS = POLLS_CSV.trim().split("\n").map(line=>{
+  const f=line.split(","); const bnu=+f[8]||0; const base=100-bnu; const v={};
+  POLL_CANDS.forEach(([n],i)=>{ const x=f[2+i]; if(x!=="" && x!=null) v[n]=+x/base*100; });
+  return {inst:f[0], t:new Date(f[1]+"T12:00:00").getTime(), d:f[1], v};
+}).sort((a,b)=>a.t-b.t);
+function pollAvgAt(t, win=14){
+  const latest={};
+  for(const p of POLLS){ if(p.t>t || p.t<=t-win*DAY) continue; if(!latest[p.inst]||latest[p.inst].t<p.t) latest[p.inst]=p; }
+  const list=Object.values(latest); if(!list.length) return null;
+  const out={_n:list.length};
+  for(const [n] of POLL_CANDS){ const xs=list.map(p=>p.v[n]).filter(x=>x!=null); if(xs.length) out[n]=xs.reduce((a,b)=>a+b,0)/xs.length; }
+  return out;
+}
+const POLL_END = new Date("2026-10-03T12:00:00").getTime();
+const POLL_FINAL = pollAvgAt(POLL_END);
+const POLL_RANGE = (()=>{ const latest={}; for(const p of POLLS){ if(p.t>POLL_END-14*DAY && (!latest[p.inst]||latest[p.inst].t<p.t)) latest[p.inst]=p; }
+  const r={}; for(const [n] of POLL_CANDS){ const xs=Object.values(latest).map(p=>p.v[n]).filter(x=>x!=null); r[n]=[Math.min(...xs),Math.max(...xs)]; } return r; })();
+
+const qs = new URLSearchParams(location.search);
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} }
+};
+const state = { env: qs.get("sim")==="1" ? "sim" : "oficial", elections:[], ele:null, paused:false, countdown:REFRESH_S, br:null, ufs:{}, selUf:"sp", sortK:"te", sortDir:-1, colors:{} };
+
+const $ = id => document.getElementById(id);
+const nf = new Intl.NumberFormat("pt-BR");
+const pf = v => (isFinite(v)?v:0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%";
+const num = s => +String(s??"0").replace(/\./g,"").replace(",",".")||0;
+const pctn = (obj,k) => obj && obj[k+"n"]!=null ? parseFloat(obj[k+"n"]) : num(obj?.[k]);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = (v,n) => String(v).padStart(n,"0");
+const parseBR = s => { const [d,m,y]=(s||"").split("/").map(Number); return new Date(y,(m||1)-1,d||1); };
+
+async function getJSON(url){
+  const r = await fetch(url,{cache:"no-store"});
+  if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; throw e; }
+  return r.json();
+}
+const envCfg = () => ENVS[state.env];
+const dataUrl = (uf,ele) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/dados/${uf}/${uf}-c0001-e${pad(ele.cd,6)}-u.json`;
+const fotoUrl = (sq,ele) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/fotos/br/${sq}.jpeg`;
+
+/* ---------- descoberta da eleição ---------- */
+async function discover(){
+  const cfg = await getJSON(`${envCfg().base}${envCfg().amb}/comum/config/ele-c.json`);
+  const out = [];
+  for(const pl of cfg.pl||[]){
+    if(!/^ele2026$/.test(pl.c)) continue;
+    for(const e of pl.e||[]){
+      const br = (e.abr||[]).find(a=>a.cd==="br");
+      if(!br || !(br.cp||[]).some(c=>c.cd==="1")) continue;
+      out.push({cd:e.cd, t:e.t, dt:pl.dt, ciclo:pl.c, nm:e.nm});
+    }
+  }
+  out.sort((a,b)=>a.t-b.t);
+  return out;
+}
+
+function pickElection(list){
+  if(qs.get("ele")) return list.find(e=>e.cd===qs.get("ele")) || {cd:qs.get("ele"),t:"1",dt:"",ciclo:"ele2026",nm:"Código informado"};
+  const today = new Date(); today.setHours(23,59,59);
+  const past = list.filter(e=>parseBR(e.dt)<=today);
+  return (past.length?past[past.length-1]:list[0]) || null;
+}
+
+async function init(){
+  renderEnv();
+  showNotice(null);
+  try{
+    state.elections = await discover();
+  }catch(err){
+    state.elections = [];
+  }
+  if(qs.get("ele") && !state.elections.length) state.elections=[pickElection([])];
+  const sel = $("turno");
+  sel.innerHTML = state.elections.map(e=>`<option value="${esc(e.cd)}">${e.t}º turno${e.dt?" · "+esc(e.dt):""}</option>`).join("");
+  sel.hidden = state.elections.length<2;
+  state.ele = pickElection(state.elections);
+  if(state.ele) sel.value = state.ele.cd;
+  if(!state.ele){
+    showNotice(state.env==="oficial"
+      ? `<b>O TSE ainda não publicou a configuração da eleição de 2026 no ambiente oficial.</b>
+         <p>O painel tenta de novo a cada ${REFRESH_S} segundos e começa a mostrar os números assim que o arquivo aparecer. A divulgação dos resultados começa depois do fechamento das urnas, às 17h de Brasília.</p>
+         <div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`
+      : `<b>Não encontrei a eleição presidencial no ambiente simulado.</b>`);
+    return;
+  }
+  loadColors();
+  await load();
+}
+
+function switchEnv(env){
+  state.env = env; state.br=null; state.ufs={};
+  const u = new URL(location.href);
+  if(env==="sim") u.searchParams.set("sim","1"); else u.searchParams.delete("sim");
+  try{ history.replaceState(null,"",u); }catch{}
+  init();
+}
+
+function renderEnv(){
+  const p=$("envPill");
+  p.className = "pill " + (state.env==="sim" ? "sim" : "live");
+  p.innerHTML = state.env==="sim" ? `<span class="dot"></span>Simulado · dados de teste` : `<span class="dot"></span>Oficial · ao vivo`;
+  p.title = state.env==="sim" ? "Clique para voltar ao ambiente oficial" : "";
+  p.style.cursor = state.env==="sim" ? "pointer" : "default";
+  p.onclick = state.env==="sim" ? ()=>switchEnv("oficial") : null;
+}
+
+function showNotice(html){ const n=$("notice"); n.hidden=!html; n.innerHTML=html||""; }
+
+/* ---------- carga de dados ---------- */
+function parse(d){
+  const carg = (d.carg||[]).find(c=>c.cd==="1") || d.carg?.[0];
+  const list = [];
+  for(const a of carg?.agr||[]) for(const p of a.par||[]) for(const c of p.cand||[]){
+    list.push({ n:c.n, sq:c.sqcand, nm:c.nmu||c.nm, sg:p.sg, col:a.tp==="c"?a.nm:"", vap:num(c.vap),
+      pv:c.pvapn!=null?parseFloat(c.pvapn):num(c.pvap), st:c.st||"", e:c.e, dvt:c.dvt||"", vice:c.vs?.[0]?.nmu||c.vs?.[0]?.nm||"" });
+  }
+  list.sort((a,b)=>b.vap-a.vap || (+a.n)-(+b.n));
+  return { raw:d, cands:list, s:d.s||{}, e:d.e||{}, v:d.v||{}, pst:pctn(d.s,"pst"), dg:d.dg, hg:d.hg, tf:d.tf, dt:d.dt, ht:d.ht };
+}
+
+function loadColors(){
+  // candidatos das pesquisas têm cor fixa (a mesma no gráfico de pesquisas e na apuração)
+  const fixed = new Set(Object.values(POLL_COLORS));
+  const stored = state.ele && state.env==="oficial" ? store.get("cores-"+state.env+"-"+state.ele.cd,{}) : {};
+  state.colors = {...POLL_COLORS};
+  for(const [n,c] of Object.entries(stored)) if(!POLL_COLORS[n] && !fixed.has(c)) state.colors[n]=c;
+}
+function colorFor(n){
+  if(!state.colors[n]){
+    const used = new Set(Object.values(state.colors));
+    state.colors[n] = PALETTE.find(c=>!used.has(c)) || PALETTE[Object.keys(state.colors).length % PALETTE.length];
+    if(state.ele) store.set("cores-"+state.env+"-"+state.ele.cd,state.colors);
+  }
+  return state.colors[n];
+}
+// a média das pesquisas só vale para o 1º turno oficial (no simulado os candidatos são fictícios)
+const pollsApply = () => state.env==="oficial" && state.ele && state.ele.t==="1";
+
+let loading=false;
+async function load(){
+  if(loading) return;
+  if(!state.ele){ state.countdown=REFRESH_S; return init(); }
+  loading=true;
+  $("refresh").disabled=true;
+  try{
+    const ele = state.ele;
+    let br;
+    try{ br = parse(await getJSON(dataUrl("br",ele))); }
+    catch(err){
+      if(err.status===404||err.status===403){
+        showNotice(`<b>A eleição está configurada, mas o TSE ainda não divulgou números.</b><p>A divulgação começa após as 17h de Brasília. O painel continua tentando a cada ${REFRESH_S} segundos.</p>${state.env==="oficial"?`<div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`:""}`);
+        return;
+      }
+      throw err;
+    }
+    showNotice(null);
+    br.cands.forEach(c=>colorFor(c.n));
+    state.br = br;
+    await updateHistory(br);
+    renderStatus(); renderCands(); renderTotals(); renderChart(); renderPolls();
+    const res = await Promise.allSettled(UFS.map(uf=>getJSON(dataUrl(uf,ele)).then(parse)));
+    res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
+    renderMap(); renderUfDetail(); renderTable();
+    $("envPill").classList.remove("err");
+  }catch(err){
+    $("envPill").className="pill err";
+    $("envPill").innerHTML=`<span class="dot"></span>Falha ao ler o TSE`;
+    $("updated").textContent = "Erro na última leitura ("+err.message+"). Tentando de novo.";
+  }finally{
+    loading=false; $("refresh").disabled=false; state.countdown=REFRESH_S;
+  }
+}
+
+/* ---------- render ---------- */
+function renderStatus(){
+  const b=state.br, s=b.s;
+  $("pst").innerHTML = `${pf(b.pst)}<small>${nf.format(num(s.st))} de ${nf.format(num(s.ts))} seções</small>`;
+  $("pbar").style.width = Math.min(100,b.pst)+"%";
+  const final = b.tf==="s" && b.pst>=100;
+  $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}`;
+  document.title = `${pf(b.pst)} apurado · Presidente 2026`;
+}
+
+function initials(nm){ return (nm||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join(""); }
+
+function candTags(c,final){
+  const t=[];
+  const st=c.st.trim();
+  if(/eleito/i.test(st) && !/não/i.test(st)) t.push(`<span class="tag">${esc(st)}</span>`);
+  else if(/turno/i.test(st)) t.push(`<span class="tag">${esc(st)}</span>`);
+  else if(final && st) t.push(`<span class="tag dim">${esc(st)}</span>`);
+  if(/anulad|indeferid|sub judice|cassad/i.test(c.dvt)) t.push(`<span class="tag warn">${esc(c.dvt)}</span>`);
+  return t.join("");
+}
+
+function renderCands(){
+  const b=state.br, final=b.tf==="s";
+  const el=$("cands");
+  const usePolls = pollsApply(), started = b.cands.some(c=>c.vap>0);
+  const pAvg = n => usePolls && POLL_FINAL[n]!=null ? POLL_FINAL[n] : null;
+  // antes do primeiro voto apurado, ordena pela média das pesquisas
+  const list = started ? b.cands : [...b.cands].sort((x,y)=>(pAvg(y.n)??-1)-(pAvg(x.n)??-1) || (+x.n)-(+y.n));
+  el.innerHTML = list.map((c,i)=>{
+    const col=colorFor(c.n);
+    const minor = i>=4 && b.cands.length>6;
+    const pa = pAvg(c.n);
+    let vs = "";
+    if(pa!=null){
+      const diff = c.pv-pa;
+      vs = `<div class="vs num">Pesquisas: <b>${pf(pa)}</b>${started?` · <b class="${diff>=0?"up":"down"}">${diff>=0?"+":"−"}${Math.abs(diff).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</b>`:""}</div>`;
+    }
+    return `<div class="cand${minor?" minor":""}" style="--c:${col}">
+      <div class="foto"><img src="${esc(fotoUrl(c.sq,state.ele))}" alt="" width="52" height="52" loading="lazy"
+        style="width:100%;height:100%;object-fit:cover" onerror="this.replaceWith(document.createTextNode('${esc(initials(c.nm))}'))"></div>
+      <div class="cname">${esc(c.nm)}${candTags(c,final)}
+        <span class="sub">${esc(c.n)} · ${esc(c.sg)}${c.col?" · "+esc(c.col):""}${c.vice?" · vice: "+esc(c.vice):""}</span></div>
+      <div><div class="cpct num">${pf(c.pv)}</div><div class="cvotes num">${nf.format(c.vap)} votos</div>${vs}</div>
+      <div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i><span class="half"></span>${pa!=null?`<span class="poll" style="left:${pa}%" title="Média das pesquisas: ${pf(pa)}"></span>`:""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderTotals(){
+  const {e,v}=state.br;
+  const comp=num(e.c), abst=num(e.a);
+  const vv=num(v.vv), vb=num(v.vb), vn=num(v.tvn||v.vn), van=num(v.van)+num(v.vansj);
+  const tot = vv+vb+vn+van || num(v.tv) || 1;
+  $("totals").innerHTML = `
+    <div class="t"><span>Eleitorado</span><b>${nf.format(num(e.te))}</b></div>
+    <div class="t"><span>Comparecimento</span><b>${nf.format(comp)}</b><span>${pf(pctn(e,"pc"))}</span></div>
+    <div class="t"><span>Abstenção</span><b>${nf.format(abst)}</b><span>${pf(pctn(e,"pa"))}</span></div>
+    <div class="t"><span>Votos válidos</span><b>${nf.format(vv)}</b><span>${pf(vv/tot*100)} dos votos</span></div>`;
+  const parts=[["Válidos",vv,"var(--accent)"],["Brancos",vb,"#9aa8a3"],["Nulos",vn,"#5f6d68"],["Anulados",van,"var(--warn)"]].filter(p=>p[1]>0);
+  $("stack").innerHTML = parts.map(p=>`<i style="width:${p[1]/tot*100}%;background:${p[2]}" title="${p[0]}"></i>`).join("");
+  $("stackLegend").innerHTML = parts.map(p=>`<span><b style="background:${p[2]}"></b>${p[0]} ${pf(p[1]/tot*100)} (${nf.format(p[1])})</span>`).join("");
+}
+
+/* ---------- histórico (curva de apuração) ---------- */
+// ponto do histórico: {dt, ht, pst, st, cand:{numero:[votos, %válidos]}} — mesmo formato do apuracao_servidor.py
+function histKey(){ return "hist2-"+state.env+"-"+state.ele.cd; }
+const ptTime = p => { const [d,m,y]=(p.dt||"").split("/").map(Number); const [hh,mm,ss]=(p.ht||"0:0:0").split(":").map(Number); return new Date(y,(m||1)-1,d||1,hh||0,mm||0,ss||0).getTime(); };
+function toPoint(b){
+  const cand={}; b.cands.forEach(c=>cand[c.n]=[c.vap,+c.pv.toFixed(4)]);
+  return {dt:b.dt||b.dg, ht:b.ht||b.hg, pst:b.pst, st:num(b.s.st), cand};
+}
+function mergePoint(h,pt){
+  const last=h[h.length-1];
+  if(last && last.ht===pt.ht && last.st===pt.st) return h;
+  if(last && pt.st<last.st) h.length=0; // recomeço (ex.: simulado reiniciado)
+  h.push(pt); return h;
+}
+async function updateHistory(b){
+  const pt=toPoint(b);
+  // 1) histórico gravado pelo servidor local (apuracao_servidor.py), se o painel estiver aberto por ele
+  if(state.env==="oficial" && location.protocol.startsWith("http")){
+    try{
+      const r=await fetch(`historico-${state.ele.cd}.json`,{cache:"no-store"});
+      if(r.ok){ state.hist=mergePoint(await r.json(),pt); state.histSrc="servidor"; return; }
+    }catch{}
+  }
+  // 2) senão, histórico deste navegador
+  const h=mergePoint(store.get(histKey(),[]),pt);
+  if(h.length>1500) h.splice(0,h.length-1500);
+  store.set(histKey(),h);
+  state.hist=h; state.histSrc="navegador";
+}
+const hasVotes = p => Object.values(p.cand).some(c=>c[0]>0);
+const fmtHora = t => new Date(t).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+
+function renderChart(){
+  const all=(state.hist||[]);
+  const h=all.filter(hasVotes);
+  const first=all[0];
+  $("histSrc").textContent = state.histSrc==="servidor"
+    ? `Gravado pelo servidor local desde ${first?first.ht.slice(0,5):"—"} · ${all.length} leituras. A curva fica completa mesmo se você fechar o painel.`
+    : /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol==="file:"
+      ? `Gravado neste navegador · ${all.length} leituras. Para não perder pontos com o painel fechado, rode o apuracao_servidor.py.`
+      : `Gravado neste navegador desde que você abriu a página · ${all.length} leituras. Deixe a página aberta para acompanhar a curva completa.`;
+  const top = state.br.cands.slice(0,4);
+  const byTime = state.axis!=="pct";
+  if(h.length<2){
+    $("chart").innerHTML = `<p class="meta" style="margin:0">A curva começa quando o TSE divulgar a segunda atualização com votos (a partir das 17h de Brasília).</p>`;
+    $("marginChart").innerHTML = ""; renderBoletins(); return;
+  }
+  const usePolls = pollsApply();
+  const W=760,H=300,L=40,R=130,T=12,B=30;
+  const xv = p => byTime ? ptTime(p) : p.pst;
+  let x0=Math.min(...h.map(xv)), x1=Math.max(...h.map(xv));
+  if(byTime){ if(x1-x0<10*60e3) x1=x0+10*60e3; } else { x0=Math.floor(x0/10)*10; x1=Math.max(x0+10,Math.ceil(x1/10)*10); }
+  let maxY=10; h.forEach(pt=>top.forEach(c=>{ const v=pt.cand[c.n]?.[1]; if(v>maxY) maxY=v; }));
+  if(usePolls) top.forEach(c=>{ if(POLL_FINAL[c.n]>maxY) maxY=POLL_FINAL[c.n]; });
+  maxY = Math.min(100,Math.ceil((maxY+5)/10)*10);
+  const x=v=>L+(v-x0)/(x1-x0)*(W-L-R), y=v=>T+(1-v/maxY)*(H-T-B);
+  let g="";
+  for(let v=0;v<=maxY;v+=10) g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}%</text>`;
+  if(maxY>=50) g+=`<line x1="${L}" x2="${W-R}" y1="${y(50)}" y2="${y(50)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  g+=xTicks(x0,x1,byTime).map(v=>`<text x="${x(v)}" y="${H-10}" text-anchor="middle">${byTime?fmtHora(v):v+"%"}</text>`).join("");
+  if(usePolls) top.forEach(c=>{ const pa=POLL_FINAL[c.n]; if(pa!=null) g+=`<line x1="${L}" x2="${W-R}" y1="${y(pa)}" y2="${y(pa)}" stroke="${colorFor(c.n)}" stroke-opacity=".55" stroke-dasharray="2 4" stroke-width="1.5"><title>Média das pesquisas: ${pf(pa)}</title></line>`; });
+  const labels=[];
+  const lines = top.map(c=>{
+    const pts=h.filter(pt=>pt.cand[c.n]).map(pt=>[x(xv(pt)),y(pt.cand[c.n][1]),pt]);
+    if(!pts.length) return "";
+    const end=pts[pts.length-1], col=colorFor(c.n);
+    labels.push({y:end[1],c,v:end[2].cand[c.n][1]});
+    return `<polyline fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" points="${pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}"/>
+            <circle cx="${end[0]}" cy="${end[1]}" r="4" fill="${col}"/>`;
+  }).join("");
+  labels.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<14) labels[i].y=labels[i-1].y+14;
+  const lab=labels.map(l=>`<text x="${W-R+10}" y="${l.y+4}" style="fill:${colorFor(l.c.n)};font-weight:600">${esc(shortName(l.c.nm))} ${l.v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}%</text>`).join("");
+  $("chart").innerHTML = `<div class="tablewrap"><svg class="chart" style="min-width:560px" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução do percentual de votos válidos durante a apuração">${g}${lines}${lab}</svg></div>
+    <div class="legend">${usePolls?"<span>Linhas pontilhadas = média das pesquisas</span>":""}<span>Eixo horizontal: ${byTime?"horário da totalização do TSE":"% das seções totalizadas"}</span></div>`;
+  renderMargin(h,byTime,xv);
+  renderBoletins();
+}
+function shortName(nm){ const w=nm.split(/\s+/); return w.length>2?w.slice(-2).join(" "):nm; }
+function xTicks(a,b,byTime){
+  if(!byTime){ const s=(b-a)>50?20:10, out=[]; for(let v=a;v<=b;v+=s) out.push(v); return out; }
+  const span=b-a, steps=[5,10,15,30,60,120].map(m=>m*60e3), step=steps.find(s=>span/s<=7)||steps[steps.length-1];
+  const out=[]; for(let v=Math.ceil(a/step)*step; v<=b; v+=step) out.push(v); return out;
+}
+function renderMargin(h,byTime,xv){
+  const [a,b]=state.br.cands;
+  if(!a||!b){ $("marginChart").innerHTML=""; return; }
+  $("marginTitle").textContent=`Diferença ${shortName(a.nm)} − ${shortName(b.nm)} (pontos percentuais)`;
+  const W=380,H=170,L=40,R=14,T=12,B=26;
+  const pts=h.filter(p=>p.cand[a.n]&&p.cand[b.n]).map(p=>({x:xv(p),d:p.cand[a.n][1]-p.cand[b.n][1],v:p.cand[a.n][0]-p.cand[b.n][0]}));
+  let x0=Math.min(...pts.map(p=>p.x)), x1=Math.max(...pts.map(p=>p.x));
+  if(byTime){ if(x1-x0<10*60e3) x1=x0+10*60e3; } else { x0=Math.floor(x0/10)*10; x1=Math.max(x0+10,Math.ceil(x1/10)*10); }
+  const m=Math.max(2,...pts.map(p=>Math.abs(p.d))), lim=Math.ceil(m/2)*2;
+  const x=v=>L+(v-x0)/(x1-x0)*(W-L-R), y=v=>T+(1-(v+lim)/(2*lim))*(H-T-B);
+  let g="";
+  [-lim,-lim/2,0,lim/2,lim].forEach(v=>g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${v===0?"var(--muted)":"var(--line)"}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v>0?"+":""}${v}</text>`);
+  g+=xTicks(x0,x1,byTime).filter((_,i,arr)=>arr.length<=5||i%2===0).map(v=>`<text x="${x(v)}" y="${H-8}" text-anchor="middle">${byTime?fmtHora(v):v+"%"}</text>`).join("");
+  const line=pts.map(p=>`${x(p.x).toFixed(1)},${y(p.d).toFixed(1)}`).join(" ");
+  const area=`${x(pts[0].x).toFixed(1)},${y(0)} ${line} ${x(pts[pts.length-1].x).toFixed(1)},${y(0)}`;
+  const last=pts[pts.length-1], col=colorFor(last.d>=0?a.n:b.n);
+  $("marginChart").innerHTML=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Diferença entre os dois primeiros colocados">
+    ${g}<polygon points="${area}" fill="${col}" fill-opacity=".15"/><polyline points="${line}" fill="none" stroke="${col}" stroke-width="2.2"/>
+    <circle cx="${x(last.x)}" cy="${y(last.d)}" r="4" fill="${col}"/></svg>
+    <div class="vs num">Agora: <b>${last.d>=0?"+":"−"}${Math.abs(last.d).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})} p.p.</b> · ${nf.format(Math.abs(last.v))} votos de diferença</div>`;
+}
+function renderBoletins(){
+  const [a,b]=state.br.cands;
+  const all=(state.hist||[]).filter(hasVotes).slice().reverse();
+  $("bolHead").innerHTML=`<tr><th>Hora TSE</th><th class="r">Seções</th><th class="r">${esc(a?shortName(a.nm):"1º")}</th><th class="r">${esc(b?shortName(b.nm):"2º")}</th><th class="r">Dif.</th></tr>`;
+  if(!all.length){ $("bolBody").innerHTML=`<tr><td colspan="5" class="meta">Nenhuma atualização com votos ainda.</td></tr>`; return; }
+  $("bolBody").innerHTML=all.map(p=>{
+    const pa=p.cand[a.n]?.[1]??0, pb=p.cand[b.n]?.[1]??0, d=pa-pb;
+    return `<tr><td class="num">${esc(p.ht)}</td><td class="r num">${pf(p.pst)}</td><td class="r num">${pf(pa)}</td><td class="r num">${pf(pb)}</td>
+      <td class="r num ${d>=0?"up":"down"}">${d>=0?"+":"−"}${Math.abs(d).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`;
+  }).join("");
+}
+$("axTime").onclick=()=>{ state.axis="time"; $("axTime").classList.add("on"); $("axPct").classList.remove("on"); if(state.br) renderChart(); };
+$("axPct").onclick=()=>{ state.axis="pct"; $("axPct").classList.add("on"); $("axTime").classList.remove("on"); if(state.br) renderChart(); };
+
+/* ---------- trajetória das pesquisas ---------- */
+function renderPolls(){
+  const W=760,H=300,L=38,R=118,T=12,B=30;
+  const t0=new Date("2026-04-15T12:00:00").getTime(), t1=new Date("2026-10-04T12:00:00").getTime();
+  const series=[];
+  for(let t=t0;t<=POLL_END;t+=2*DAY) series.push([t,pollAvgAt(t)]);
+  series.push([POLL_END,POLL_FINAL]);
+  const urna = pollsApply() && state.br && state.br.cands.some(c=>c.vap>0) ? Object.fromEntries(state.br.cands.map(c=>[c.n,c.pv])) : null;
+  let maxY=50; POLLS.forEach(p=>Object.values(p.v).forEach(v=>{ if(v>maxY) maxY=v; }));
+  if(urna) Object.values(urna).forEach(v=>{ if(v>maxY) maxY=v; });
+  maxY=Math.min(100,Math.ceil(maxY/10)*10);
+  const x=t=>L+(t-t0)/(t1-t0)*(W-L-R), y=v=>T+(1-v/maxY)*(H-T-B);
+  let g="";
+  for(let v=0;v<=maxY;v+=10) g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}%</text>`;
+  g+=`<line x1="${L}" x2="${W-R}" y1="${y(50)}" y2="${y(50)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  const meses=["mai","jun","jul","ago","set","out"];
+  meses.forEach((m,i)=>{ const t=new Date(2026,4+i,1,12).getTime(); g+=`<line x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${H-B}" stroke="var(--line)" stroke-dasharray="1 3"/><text x="${x(t)}" y="${H-10}" text-anchor="middle">${m}</text>`; });
+  g+=`<line x1="${x(t1)}" x2="${x(t1)}" y1="${T}" y2="${H-B}" stroke="var(--muted)"/><text x="${x(t1)}" y="${T+10}" text-anchor="end" dx="-4">4/out · urna</text>`;
+  // pontos de cada pesquisa
+  let dots="";
+  for(const p of POLLS) for(const [n] of POLL_CANDS) if(p.v[n]!=null && p.t>=t0)
+    dots+=`<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.v[n]).toFixed(1)}" r="2.2" fill="${POLL_COLORS[n]}" fill-opacity=".22"><title>${esc(p.inst)} ${p.d}: ${pf(p.v[n])}</title></circle>`;
+  // linhas da média e rótulos finais (com afastamento para não sobrepor)
+  let lines="", labels=[];
+  for(const [n,nm] of POLL_CANDS){
+    const pts=series.filter(([,a])=>a&&a[n]!=null).map(([t,a])=>`${x(t).toFixed(1)},${y(a[n]).toFixed(1)}`);
+    lines+=`<polyline fill="none" stroke="${POLL_COLORS[n]}" stroke-width="2.4" stroke-linejoin="round" points="${pts.join(" ")}"/>`;
+    const fy=y(POLL_FINAL[n]);
+    lines+=`<circle cx="${x(POLL_END)}" cy="${fy}" r="3.5" fill="${POLL_COLORS[n]}"/>`;
+    if(urna && urna[n]!=null){
+      const uy=y(urna[n]), ux=x(t1);
+      lines+=`<line x1="${x(POLL_END)}" y1="${fy}" x2="${ux}" y2="${uy}" stroke="${POLL_COLORS[n]}" stroke-dasharray="3 3" stroke-width="1.5"/>
+              <rect x="${ux-5}" y="${uy-5}" width="10" height="10" transform="rotate(45 ${ux} ${uy})" fill="${POLL_COLORS[n]}" stroke="var(--surface)" stroke-width="1.5"><title>Urna agora: ${pf(urna[n])}</title></rect>`;
+    }
+    labels.push({n,nm,y:urna&&urna[n]!=null?y(urna[n]):fy,v:urna&&urna[n]!=null?urna[n]:POLL_FINAL[n]});
+  }
+  labels.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<13) labels[i].y=labels[i-1].y+13;
+  const lab=labels.map(l=>`<text x="${x(t1)+10}" y="${l.y+4}" style="fill:${POLL_COLORS[l.n]};font-weight:600">${esc(l.nm)} ${l.v.toLocaleString("pt-BR",{maximumFractionDigits:1,minimumFractionDigits:1})}%</text>`).join("");
+  $("pollChart").innerHTML=`<div class="tablewrap"><svg class="chart" style="min-width:560px" viewBox="0 0 ${W} ${H}" role="img" aria-label="Média das pesquisas de abril a outubro de 2026">${g}${dots}${lines}${lab}</svg></div>`;
+  $("pollCount").textContent=`${POLLS.length} pesquisas · ${POLL_FINAL._n} institutos na média final`;
+  $("pollTable").innerHTML=POLL_CANDS.map(([n,nm])=>{
+    const pa=POLL_FINAL[n], r=POLL_RANGE[n], u=urna?urna[n]:null, d=u!=null?u-pa:null;
+    return `<tr><td><span class="sw" style="--c:${POLL_COLORS[n]}"></span>${esc(nm)}</td><td class="r num"><b>${pf(pa)}</b></td>
+      <td class="r num">${pf(r[0])} – ${pf(r[1])}</td><td class="r num">${u!=null?pf(u):"—"}</td>
+      <td class="r num">${d!=null?`<span class="${d>=0?"up":"down"}">${d>=0?"+":"−"}${Math.abs(d).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})} p.p.</span>`:"—"}</td></tr>`;
+  }).join("");
+}
+
+/* ---------- estados ---------- */
+function mix(hex,amt){ // mistura a cor com cinza neutro conforme % apurado
+  return `color-mix(in srgb, ${hex} ${Math.round(35+amt*0.65)}%, var(--line))`;
+}
+function renderMap(){
+  const cells=[];
+  for(const uf of UFS){
+    const d=state.ufs[uf], [cx,cy]=TILE[uf];
+    let bg="var(--line)", on=false, sub="—";
+    if(d && d.cands[0] && d.cands[0].vap>0){ bg=mix(colorFor(d.cands[0].n),d.pst); on=true; sub=Math.round(d.pst)+"%"; }
+    cells.push(`<button type="button" class="uf${on?" on":""}${uf===state.selUf?" sel":""}" style="grid-column:${cx+1};grid-row:${cy+1};background:${bg}"
+      data-uf="${uf}" title="${UF_NAMES[uf]}">${uf==="zz"?"EXT":uf.toUpperCase()}<small>${sub}</small></button>`);
+  }
+  $("map").innerHTML=cells.join("");
+}
+$("map").addEventListener("click",e=>{ const b=e.target.closest("[data-uf]"); if(b){ state.selUf=b.dataset.uf; renderMap(); renderUfDetail(); }});
+
+function renderUfDetail(){
+  const uf=state.selUf, d=state.ufs[uf];
+  if(!d){ $("ufdetail").innerHTML=`<h2>${UF_NAMES[uf]}</h2><p class="meta">Sem dados para esta UF ainda.</p>`; return; }
+  $("ufdetail").innerHTML = `<div><div class="eyebrow">${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores</div><h2>${UF_NAMES[uf]}</h2></div>` +
+    d.cands.slice(0,5).map(c=>`<div class="ufrow" style="--c:${colorFor(c.n)}"><span><span class="sw"></span>${esc(c.nm)}</span>
+      <b class="num">${pf(c.pv)}</b><div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i></div></div>`).join("");
+}
+
+function ufRows(){
+  return UFS.filter(u=>state.ufs[u]).map(u=>{
+    const d=state.ufs[u], a=d.cands[0]||{}, b=d.cands[1]||{};
+    return {uf:u, pst:d.pst, l1:a.nm||"", p1:a.pv||0, n1:a.n, l2:b.nm||"", p2:b.pv||0, n2:b.n, mg:(a.pv||0)-(b.pv||0), te:num(d.e.te)};
+  });
+}
+function renderTable(){
+  const rows=ufRows().sort((a,b)=>{ const k=state.sortK; return (a[k]>b[k]?1:a[k]<b[k]?-1:0)*state.sortDir; });
+  $("ufTable").innerHTML = rows.map(r=>`<tr data-uf="${r.uf}">
+    <td><b>${r.uf==="zz"?"Exterior":r.uf.toUpperCase()}</b></td><td class="r num">${pf(r.pst)}</td>
+    <td><span class="sw" style="--c:${colorFor(r.n1)}"></span>${esc(r.l1)}</td><td class="r num">${pf(r.p1)}</td>
+    <td><span class="sw" style="--c:${colorFor(r.n2)}"></span>${esc(r.l2)}</td><td class="r num">${pf(r.p2)}</td>
+    <td class="r num">${r.mg.toLocaleString("pt-BR",{maximumFractionDigits:2,minimumFractionDigits:2})} p.p.</td>
+    <td class="r num">${nf.format(r.te)}</td></tr>`).join("");
+}
+document.querySelector("thead").addEventListener("click",e=>{
+  const th=e.target.closest("th"); if(!th) return;
+  const k=th.dataset.k; state.sortDir = state.sortK===k ? -state.sortDir : (k==="uf"||k==="l1"||k==="l2"?1:-1); state.sortK=k; renderTable();
+});
+$("ufTable").addEventListener("click",e=>{ const tr=e.target.closest("tr"); if(tr){ state.selUf=tr.dataset.uf; renderMap(); renderUfDetail(); $("map").scrollIntoView({behavior:"smooth",block:"nearest"}); }});
+
+/* ---------- controles e relógio ---------- */
+$("refresh").onclick=()=>load();
+$("pause").onclick=()=>{ state.paused=!state.paused; $("pause").textContent=state.paused?"Retomar":"Pausar"; tick(); };
+$("turno").onchange=e=>{
+  state.ele = state.elections.find(x=>x.cd===e.target.value);
+  state.br=null; state.ufs={}; loadColors();
+  load();
+};
+function tick(){
+  $("next").textContent = state.paused ? "Atualização automática pausada" : `Próxima leitura em ${state.countdown}s`;
+}
+setInterval(()=>{
+  if(state.paused||loading) return tick();
+  state.countdown--; tick();
+  if(state.countdown<=0) load();
+},1000);
+
+state.colors={...POLL_COLORS};
+renderPolls();
+init();
+</script>
+</body>
+</html>

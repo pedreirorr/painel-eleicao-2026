@@ -59,7 +59,17 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 @media (prefers-reduced-motion:reduce){.live .dot{animation:none}.bar i{transition:none!important}}
 
 .status{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px}
-.status-top{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;justify-content:space-between}
+.status-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 32px;align-items:end}
+.status-top .meta{grid-column:1 / -1}
+.lead{display:grid;gap:2px;padding-left:24px;border-left:1px solid var(--line);min-width:0}
+.leadv{font:700 1.7rem/1.1 var(--display);overflow-wrap:anywhere}
+.leads{color:var(--muted);font-size:.9rem}
+.leads b{color:var(--ink);font-weight:600}
+@media (max-width:860px){
+  .status-top{grid-template-columns:minmax(0,1fr)}
+  .lead{padding-left:0;border-left:0;border-top:1px solid var(--line);padding-top:10px}
+  .leadv{font-size:1.4rem}
+}
 .apurado{font:700 2.4rem/1 var(--display)}
 .apurado small{font:500 .9rem var(--body);color:var(--muted);margin-left:6px}
 .progress{height:10px;background:var(--line);border-radius:99px;overflow:hidden}
@@ -243,6 +253,7 @@ footer a{color:var(--accent)}
         <div class="eyebrow">Seções totalizadas</div>
         <div class="apurado num" id="pst">—<small id="pstAbs"></small></div>
       </div>
+      <div class="lead num" id="lead" hidden></div>
       <div class="meta num">
         <span id="updated">Aguardando dados</span>
         <span id="next"></span>
@@ -343,6 +354,7 @@ footer a{color:var(--accent)}
           <div class="eyebrow">Seções totalizadas em Goiás</div>
           <div class="apurado num" id="goPst">—<small id="goPstAbs"></small></div>
         </div>
+        <div class="lead num" id="goLead" hidden></div>
         <div class="meta num"><span id="goUpdated">Aguardando dados</span><span id="goNext"></span></div>
       </div>
       <div class="progress"><i id="goBar" style="width:0%"></i></div>
@@ -720,6 +732,17 @@ function renderStatus(){
   const final = b.tf==="s" && b.pst>=100;
   $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}`;
   document.title = `${pf(b.pst)} apurado · Presidente 2026`;
+  mostraLider("lead", b.cands, c=>colorFor(c.n));
+}
+// vantagem do 1º sobre o 2º, no quadro do topo
+function mostraLider(id, cands, cor){
+  const el=$(id), [a,b]=cands||[];
+  if(!a || !b || !(a.vap>0)){ el.hidden=true; return; }
+  const v=a.vap-b.vap, d=a.pv-b.pv;
+  el.hidden=false;
+  el.innerHTML = v===0
+    ? `<div class="eyebrow">Diferença entre 1º e 2º</div><div class="leadv">Empate</div><div class="leads">${esc(shortName(a.nm))} e ${esc(shortName(b.nm))} com ${nf.format(a.vap)} votos</div>`
+    : `<div class="eyebrow">Vantagem do 1º colocado</div><div class="leadv" style="color:${cor(a,0)}">${esc(shortName(a.nm))} +${pp(d)} p.p.</div><div class="leads"><b>${nf.format(v)} votos</b> à frente de ${esc(shortName(b.nm))}</div>`;
 }
 
 function initials(nm){ return (nm||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join(""); }
@@ -1134,6 +1157,7 @@ function renderGO(){
     $("goPst").innerHTML=`${pf(ref.pst)}<small>${nf.format(num(ref.s.st))} de ${nf.format(num(ref.s.ts))} seções</small>`;
     $("goBar").style.width=Math.min(100,ref.pst)+"%";
     $("goUpdated").textContent=`Última totalização: ${ref.dt||"—"} às ${ref.ht||"—"} · ${nf.format(num(ref.e.te))} eleitores`;
+    if(D.gov){ mostraLider("goLead", D.gov.cands, (c,i)=>PALETTE[0]); const e=$("goLead").querySelector(".eyebrow"); if(e) e.textContent = e.textContent.replace("1º colocado","1º colocado para governador").replace("entre 1º e 2º","para governador"); }
   }
   if(D.gov) renderMajoritaria("goGovList", D.gov, {half:true});
   if(D.sen){ renderMajoritaria("goSenList", D.sen, {seats:D.sen.nv}); $("goSenVagas").textContent=`${D.sen.nv} ${D.sen.nv>1?"vagas":"vaga"} · tracejado = ${D.sen.nv}º colocado`; }

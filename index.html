@@ -43,6 +43,8 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .pill{display:inline-flex;align-items:center;gap:6px;font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
 .pill.sim{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .pill.err{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.pill.online{background:var(--line);color:var(--ink)}
+.pill.online .dot{color:var(--accent)}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
 .live .dot{animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
@@ -181,6 +183,7 @@ footer a{color:var(--accent)}
         <button type="button" role="tab" id="tabGO" class="seg" aria-selected="false">Goiás</button>
       </div>
       <span id="envPill" class="pill">—</span>
+      <span id="online" class="pill online" hidden title="Pessoas com o painel aberto agora"><span class="dot"></span><span id="onlineN">—</span></span>
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
       <button id="refresh" type="button" class="primary">Atualizar agora</button>
@@ -1140,6 +1143,23 @@ setInterval(()=>{
 state.colors={...POLL_COLORS};
 renderPolls();
 init().then(()=>{ if(location.hash==="#goias") setView("go"); });
+
+/* ---------- pessoas online (Cloudflare Worker + Durable Object) ---------- */
+const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
+(function online(){
+  if(!/^https?:$/.test(location.protocol) || ONLINE_WS.includes("__")) return;
+  let ws, espera=2000, ping;
+  const pill=$("online"), n=$("onlineN");
+  const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"pessoa":"pessoas"} online`; };
+  function conecta(){
+    try{ ws=new WebSocket(ONLINE_WS); }catch{ return; }
+    ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },25000); ws.send("ping"); };
+    ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); }catch{} };
+    ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };
+  }
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && ws && ws.readyState>1){ espera=2000; conecta(); } });
+  conecta();
+})();
 </script>
 </body>
 </html>

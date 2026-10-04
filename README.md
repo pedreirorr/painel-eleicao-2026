@@ -14,6 +14,7 @@ Painel para acompanhar a apuração da eleição para Presidente da República d
 - Evolução da apuração (por horário ou por % apurado) e diferença entre 1º e 2º colocados
 - Trajetória da média das pesquisas (abril a 3 de outubro de 2026)
 - Resultado por estado e no exterior
+- Quantidade de pessoas com o painel aberto agora
 - Aba **Goiás** (`#goias`): Governador, Senado, Deputado Federal e Deputado Estadual, com busca de candidatos
 
 ## Como funciona
@@ -33,6 +34,15 @@ python apuracao_servidor.py
 e abra `http://localhost:8765/index.html`.
 
 Para ver o simulado oficial do TSE (dados fictícios), acrescente `?sim=1` ao endereço.
+
+## Contador de pessoas online
+
+A pasta `contador/` tem um Cloudflare Worker com um Durable Object: cada painel aberto mantém uma conexão WebSocket, e o Worker devolve o total de conexões em tempo real. Só aceita conexões vindas do painel publicado e do painel local, e não guarda nenhum dado pessoal. Para publicar uma alteração:
+
+```
+cd contador
+npx wrangler deploy
+```
 
 ## Fontes
 

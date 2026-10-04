@@ -57,7 +57,7 @@ export class Sala extends DurableObject {
     // hibernação: conexões paradas não consomem tempo de execução
     this.ctx.acceptWebSocket(servidor);
     // conexões sem código válido contam como um dispositivo cada
-    servidor.serializeAttachment({ d: CODIGO_VALIDO.test(d) ? d : crypto.randomUUID() });
+    servidor.serializeAttachment({ d: CODIGO_VALIDO.test(d) ? d : crypto.randomUUID(), desde: Date.now() });
     await this.agendarAviso();
     return new Response(null, { status: 101, webSocket: cliente });
   }
@@ -66,9 +66,23 @@ export class Sala extends DurableObject {
     return this.ctx.getWebSockets().filter((ws) => ws.readyState === WebSocket.OPEN);
   }
 
+  // último sinal de vida da conexão: o "ping" (respondido automaticamente) ou, se nunca pingou, a hora em que entrou
+  ultimoSinal(ws) {
+    const p = this.ctx.getWebSocketAutoResponseTimestamp(ws);
+    return Math.max(p ? p.getTime() : 0, ws.deserializeAttachment()?.desde || 0);
+  }
+
+  // conta só conexões com sinal de vida nos últimos 2 min (o painel pinga a cada 45 s);
+  // as "fantasmas" (aparelho sumiu sem avisar) são fechadas
   contagem(lista = this.abertas()) {
-    const dispositivos = new Set(lista.map((ws) => ws.deserializeAttachment()?.d));
-    return { online: dispositivos.size, conexoes: lista.length };
+    const limite = Date.now() - 120000, vivas = [];
+    let fantasmas = 0;
+    for (const ws of lista) {
+      if (this.ultimoSinal(ws) >= limite) vivas.push(ws);
+      else { fantasmas++; try { ws.close(4000, "sem sinal"); } catch {} }
+    }
+    const dispositivos = new Set(vivas.map((ws) => ws.deserializeAttachment()?.d));
+    return { online: dispositivos.size, conexoes: vivas.length, fantasmas_fechadas: fantasmas };
   }
 
   async contar() {

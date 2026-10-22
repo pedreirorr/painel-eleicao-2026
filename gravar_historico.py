@@ -17,6 +17,32 @@ DADOS_DIR = os.environ.get("DADOS_DIR", "dados")
 HORAS = float(os.environ.get("HORAS", "5.8"))
 INTERVALO = 30
 PUSH_MIN = 45  # segundos entre pushes
+# previsão do 2º turno: enviada ao contador (Cloudflare), que repassa a todos os painéis abertos
+PREVISAO_URL = os.environ.get("PREVISAO_URL", "https://painel-online.pedro0-75c.workers.dev/previsao")
+PREVISAO_TOKEN = os.environ.get("PREVISAO_TOKEN", "")
+PREVISAO_INTERVALO = 25
+
+
+def primeiro_turno_de(cd2):
+    """Código da eleição do 1º turno cujo 2º turno é cd2 (campo cdt2 da configuração do TSE)."""
+    from apuracao_servidor import get_json
+    cfg = get_json(BASE + "comum/config/ele-c.json")
+    for pl in cfg.get("pl", []):
+        for e in pl.get("e", []):
+            if str(e.get("cdt2")) == str(cd2):
+                return e["cd"]
+    return None
+
+
+def envia_previsao(p):
+    import urllib.request
+    if not PREVISAO_TOKEN:
+        return
+    req = urllib.request.Request(PREVISAO_URL, data=json.dumps(p, separators=(",", ":")).encode(), method="POST",
+                                 headers={"Authorization": "Bearer " + PREVISAO_TOKEN, "Content-Type": "application/json",
+                                          "User-Agent": "painel-apuracao/1.0"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        r.read()
 
 
 def git(*args):
@@ -38,6 +64,7 @@ def publicar(msg):
 def main():
     fim = time.time() + HORAS * 3600
     ele, ultimo_push, pendente, final = None, 0, False, False
+    coletor, ultima_prev = None, 0
     while time.time() < fim:
         try:
             if ele is None:
@@ -56,6 +83,25 @@ def main():
                         json.dump(hist, f, ensure_ascii=False, separators=(",", ":"))
                     pendente = True
                     log(f"Novo ponto: {novo['pst']:.2f}% das seções (totalização {novo['ht']}) · {len(hist)} pontos")
+                # previsão (só no 2º turno): roda num bloco à parte para nunca atrapalhar o histórico
+                if ele[3] == "2" and time.time() - ultima_prev >= PREVISAO_INTERVALO:
+                    ultima_prev = time.time()
+                    try:
+                        if coletor is None:
+                            sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "previsao"))
+                            from coletor import Coletor
+                            coletor = Coletor(ciclo, cd, primeiro_turno_de(cd))
+                        prev = coletor.ciclo_()
+                        prev.update({"pst_tse": novo["pst"], "ht_tse": novo["ht"], "dt_tse": novo["dt"]})
+                        envia_previsao(prev)
+                        arqp = os.path.join(DADOS_DIR, f"previsao-{cd}.json")
+                        hp = json.load(open(arqp, encoding="utf-8")) if os.path.exists(arqp) else []
+                        hp.append({k: prev[k] for k in ("calculado", "ht_tse", "pst_tse", "pA", "lo90", "hi90", "chanceA", "t", "municipios_apurados", "apurado_eleitorado")})
+                        json.dump(hp, open(arqp, "w", encoding="utf-8"), separators=(",", ":"))
+                        pendente = True
+                        log(f"Previsão: A {prev['pA']*100:.2f}% ({prev['lo90']*100:.1f}–{prev['hi90']*100:.1f}), chance {prev['chanceA']*100:.0f}%, {prev['municipios_apurados']} municípios")
+                    except Exception as err:
+                        log("Falha na previsão:", err)
                 final = d.get("tf") == "s" and novo["pst"] >= 100
                 if pendente and (time.time() - ultimo_push >= PUSH_MIN or final):
                     publicar(f"Histórico {cd}: {novo['pst']:.2f}% das seções às {novo['ht']}")

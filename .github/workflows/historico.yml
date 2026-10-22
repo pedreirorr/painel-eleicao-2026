@@ -46,6 +46,7 @@ jobs:
         env:
           DADOS_DIR: dados
           HORAS: ${{ inputs.horas || '5.8' }}
+          PREVISAO_TOKEN: ${{ secrets.PREVISAO_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
           set +e

@@ -1,2 +1,4 @@
-node_modules/
 .wrangler/
+__pycache__/
+node_modules/
+previsao/teste_*.txt

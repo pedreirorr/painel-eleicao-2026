@@ -89,6 +89,20 @@ export class Sala extends DurableObject {
     return this.contagem();
   }
 
+  // previsão calculada pelo gravador do GitHub: guardada e repassada a todos os painéis
+  async lerPrevisao() {
+    if (this.prev === undefined) this.prev = (await this.ctx.storage.get("prev")) || null;
+    return this.prev;
+  }
+
+  async salvaPrevisao(p) {
+    this.prev = p;
+    await this.ctx.storage.put("prev", p);
+    const msg = JSON.stringify({ prev: p });
+    for (const ws of this.abertas()) { try { ws.send(msg); } catch {} }
+    return true;
+  }
+
   async estadoTSE() {
     return { lido_ha_s: this.tseEm ? Math.round((Date.now() - this.tseEm) / 1000) : null, tse: this.tse || {} };
   }
@@ -117,7 +131,7 @@ export class Sala extends DurableObject {
     const lista = this.abertas();
     if (!lista.length) return; // ninguém conectado: para de vigiar até alguém entrar
     if (!this.tseEm || Date.now() - this.tseEm >= CHECA_MS - 500) { try { await this.checaTSE(); } catch {} }
-    const msg = JSON.stringify({ ...this.contagem(this.abertas()), tse: this.tse || {} });
+    const msg = JSON.stringify({ ...this.contagem(this.abertas()), tse: this.tse || {}, prev: await this.lerPrevisao() });
     for (const ws of this.abertas()) { try { ws.send(msg); } catch {} }
     await this.ctx.storage.setAlarm(Date.now() + CHECA_MS);
   }
@@ -125,7 +139,7 @@ export class Sala extends DurableObject {
   async webSocketMessage(ws, msg) {
     // "conta": pedido explícito da contagem atual (usado ao conectar)
     if (msg === "conta") {
-      try { ws.send(JSON.stringify({ ...this.contagem(), tse: this.tse || {} })); } catch {}
+      try { ws.send(JSON.stringify({ ...this.contagem(), tse: this.tse || {}, prev: await this.lerPrevisao() })); } catch {}
     }
   }
 
@@ -151,6 +165,19 @@ export default {
     }
     if (new URL(req.url).pathname === "/online") {
       return Response.json(await sala.contar(), { headers: { ...cors, "Cache-Control": "no-store" } });
+    }
+    if (new URL(req.url).pathname === "/previsao") {
+      if (req.method === "POST") {
+        // só o gravador (GitHub Actions) envia, com o token secreto
+        if (!env.PREVISAO_TOKEN || req.headers.get("Authorization") !== "Bearer " + env.PREVISAO_TOKEN)
+          return new Response("Não autorizado", { status: 401 });
+        const corpo = await req.text();
+        if (corpo.length > 20000) return new Response("Grande demais", { status: 413 });
+        let p; try { p = JSON.parse(corpo); } catch { return new Response("JSON inválido", { status: 400 }); }
+        await sala.salvaPrevisao(p);
+        return Response.json({ ok: true });
+      }
+      return Response.json(await sala.lerPrevisao(), { headers: { ...cors, "Cache-Control": "no-store" } });
     }
     if (new URL(req.url).pathname === "/tse") {
       return Response.json(await sala.estadoTSE(), { headers: { ...cors, "Cache-Control": "no-store" } });

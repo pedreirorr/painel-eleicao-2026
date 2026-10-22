@@ -4,30 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Apuração Presidente 2026</title>
-<script>try{var t=localStorage.getItem("tema");if(t==="claro"||t==="escuro")document.documentElement.dataset.theme=t==="escuro"?"dark":"light";}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: painel de apuração — faixa de status, placar de candidatos + totais, cartograma por UF e curva da apuração */
 :root{
-  --bg:#f3f5f4; --surface:#ffffff; --ink:#14201c; --muted:#5d6b66; --line:#dbe2df;
-  --accent:#0b7a5c; --accent-soft:#d9efe7; --warn:#a86a00; --bad:#b3261e;
-  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-  color-scheme:light;
+  --bg:#07090f; --surface:#0f131c; --surface2:#141926; --ink:#eef1f7; --muted:#9aa3b5; --muted2:#636c7e; --line:#232a38; --edge:rgba(255,255,255,.07);
+  --accent:#22c55e; --accent-soft:rgba(34,197,94,.14); --warn:#f59e0b; --bad:#f87171;
+  --display:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f1513; --surface:#17201d; --ink:#e6eeeb; --muted:#93a39d; --line:#2a3632;
-  --accent:#3fc59a; --accent-soft:#163a2f; --warn:#e0a640; --bad:#f2786f; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0f1513; --surface:#17201d; --ink:#e6eeeb; --muted:#93a39d; --line:#2a3632;
-  --accent:#3fc59a; --accent-soft:#163a2f; --warn:#e0a640; --bad:#f2786f; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:radial-gradient(900px 420px at 12% -8%,rgba(59,130,246,.13),transparent 60%),radial-gradient(900px 420px at 88% -8%,rgba(244,63,94,.11),transparent 60%)}
 .wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:grid;gap:18px}
 h1,h2{font-family:var(--display);text-wrap:balance;margin:0}
 h1{font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:700;letter-spacing:-.01em}
@@ -48,11 +43,12 @@ header{display:grid;gap:4px}
 .acts{display:flex;gap:8px;align-items:center;margin-left:auto}
 button.icon{min-width:38px;padding-inline:10px;font-size:1rem;line-height:1}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,select,input{font:500 .85rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px}
+button,select,input{font:500 .85rem var(--body);color:var(--ink);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 11px}
+select option{background:var(--surface)}
 button{cursor:pointer}
 button:hover{border-color:var(--accent)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#03140a;font-weight:600}
 .pill{display:inline-flex;align-items:center;gap:6px;font:600 .72rem var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
 .pill.sim{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .pill.err{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
@@ -64,7 +60,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 @keyframes pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.live .dot{animation:none}.bar i{transition:none!important}}
 
-.status{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px}
+.status{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--edge);border-radius:20px;padding:16px;display:grid;gap:12px}
 .status-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 32px;align-items:end}
 .status-top .meta{grid-column:1 / -1}
 .lead{display:grid;gap:2px;padding-left:24px;border-left:1px solid var(--line);min-width:0}
@@ -86,7 +82,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 
 .grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+.panel{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--edge);border-radius:20px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
 .wrap>*{min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 
@@ -293,6 +289,196 @@ svg text{fill:var(--muted);font:11px var(--mono)}
 .chart{width:100%;height:auto;display:block}
 footer{color:var(--muted);font-size:.8rem;max-width:80ch}
 footer a{color:var(--accent)}
+
+/* ===== quadro principal do 2º turno (tela única no computador, abas no celular) ===== */
+body.t2 .wrap{max-width:1600px;padding-inline:22px;padding-block:16px 40px}
+body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.grid{display:none!important}
+.dash{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dmono{font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.dcard{position:relative;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--edge);border-radius:20px;padding:16px 18px;min-width:0;min-height:0;display:flex;flex-direction:column}
+.dcard>h3{margin:0 0 10px;font:600 13px var(--body);color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:26px}
+.dcard>h3 .sp{flex:1}
+.dhead{display:flex;align-items:center;gap:14px 18px;flex-wrap:wrap;min-width:0}
+.dlogo{display:flex;align-items:center;gap:10px;min-width:0}
+.dlogo>i{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#f43f5e);display:grid;place-items:center;font:800 12px var(--body);font-style:normal;flex:none}
+.dlogo b{display:block;font:700 17px/1.2 var(--body);letter-spacing:-.01em}
+.dlogo small{display:block;font-size:11.5px;color:var(--muted2)}
+.dprog{flex:1 1 260px;display:flex;align-items:center;gap:12px;min-width:220px;max-width:560px;margin-left:auto}
+.dtr{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;min-width:60px}
+.dtr span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#16a34a,#4ade80);transition:width .6s}
+.dprog b{font:700 20px var(--body);white-space:nowrap}
+.dlive{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.ddot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:dpulse 1.8s infinite}
+@keyframes dpulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 9px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@media (prefers-reduced-motion:reduce){.ddot{animation:none}}
+.dpill{font:600 11px var(--body);padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid var(--edge);color:var(--muted);white-space:nowrap}
+.dacts{display:flex;gap:8px;align-items:center}
+.dacts select,.dacts button{height:34px;padding:0 12px;font-size:12px}
+.dacts #refresh .long{display:none}
+.dtop{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:14px;min-width:0}
+.dplacar{container-type:inline-size}
+.dvs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px}
+.ddifm{display:none;justify-content:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px;white-space:nowrap}
+.ddifm b{color:var(--ink)}
+.dc{display:flex;align-items:center;gap:16px;min-width:0}
+.dc.r{flex-direction:row-reverse;text-align:right}
+.dfig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:96px}
+.dfoto{width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:50% 20%;background:var(--line);box-shadow:0 0 0 3px var(--c),0 0 0 6px color-mix(in srgb,var(--c) 22%,transparent);display:grid;place-items:center;font:800 20px var(--body);color:var(--ink)}
+.dfig figcaption{font:600 11.5px/1.25 var(--body);color:var(--muted);text-align:center;max-width:96px;overflow-wrap:anywhere}
+.dfig figcaption small{display:block;font-weight:500;color:var(--muted2)}
+.dnums{min-width:0}
+.dpc{font:800 clamp(28px,calc((100cqi - 400px)/7.4),58px)/1 var(--body);letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dvt{font-size:12px;color:var(--muted2);margin-top:4px;white-space:nowrap}
+.dmid{text-align:center;min-width:0}
+.dmid b{display:block;font:700 clamp(16px,1.6vw,22px)/1.2 var(--body);white-space:nowrap}
+.dmid small{display:block;font-size:11px;color:var(--muted2);white-space:nowrap}
+.dbar{position:relative;height:14px;border-radius:99px;display:flex;margin:18px 0 8px;background:var(--line)}
+.dbar i{display:block;height:100%;transition:width .6s}
+.dbar i:first-child{border-radius:99px 0 0 99px}
+.dbar i:last-of-type{border-radius:0 99px 99px 0}
+.dbar:after{content:"";position:absolute;left:50%;top:-6px;bottom:-6px;width:2px;margin-left:-1px;background:var(--ink);border-radius:2px;opacity:.8}
+.dfoot{display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;font-size:12px;color:var(--muted2)}
+.dfoot b{color:var(--muted);font-weight:600}
+.dgauge{position:relative;width:100%;max-width:230px;margin:0 auto}
+.dgauge svg{display:block;width:100%;height:auto}
+.dgauge .c{position:absolute;left:0;right:0;bottom:2px;text-align:center}
+.dgauge .c b{display:block;font:800 clamp(28px,2.8vw,38px)/1 var(--body)}
+.dgauge .c small{display:block;font-size:12px;color:var(--muted);margin:3px auto 0;max-width:62%;line-height:1.25}
+.drow3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;font-size:11.5px;color:var(--muted2)}
+.drow3>span:nth-child(2){text-align:center}.drow3>span:nth-child(3){text-align:right}
+.drow3 b{display:block;font:700 16px var(--body);color:var(--ink);white-space:nowrap}
+.drow3>span{white-space:nowrap;min-width:0}
+.dband{position:relative;height:8px;border-radius:99px;margin-top:10px;display:flex;overflow:hidden}
+.dband i{display:block;height:100%}
+.dband .fx{background:repeating-linear-gradient(45deg,rgba(255,255,255,.55) 0 3px,transparent 3px 7px)}
+.dbandw{position:relative}
+.dbandw:after{content:"";position:absolute;left:50%;top:6px;height:12px;width:2px;margin-left:-1px;background:var(--ink);opacity:.8}
+.dprevsub{font-size:11.5px;color:var(--muted2);margin-top:8px;text-align:center}
+.dvazio{margin:auto;text-align:center;color:var(--muted);font-size:13px;max-width:34ch;padding:16px 0}
+.dtabs{display:none}
+.dbot{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.05fr) minmax(0,1fr);gap:14px;min-width:0}
+.dcol{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:0}
+.dcol>.dcard{flex:1}
+.dcurva{flex:1;min-height:180px;position:relative}
+.dcurva svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.dcurva svg text{font:11px var(--body);fill:var(--muted2)}
+.dtiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dtile{background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:14px;padding:10px 12px;min-width:0}
+.dtile small{display:block;font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dtile b{font:700 20px var(--body);white-space:nowrap}
+.dtile em{font-style:normal;font-size:11px;font-weight:600;margin-left:4px;white-space:nowrap}
+.dtile .sub{display:block;font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dup{color:#4ade80}.ddn{color:#f87171}
+.dseg{display:inline-flex;background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:10px;padding:3px;gap:2px}
+.dseg button{font:600 11px var(--body);padding:4px 10px;border-radius:7px;color:var(--muted2);background:none;border:0;height:auto}
+.dseg button.on{background:rgba(255,255,255,.1);color:var(--ink)}
+.dmapbox{flex:1;min-height:200px;position:relative}
+.dmapbox svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.dmapbox path{stroke:var(--bg);stroke-width:1.1;stroke-linejoin:round;cursor:pointer;transition:filter .15s}
+.dmapbox path:hover,.dmapbox path:focus-visible{filter:brightness(1.25);outline:none}
+.dmapbox text{font-family:var(--body);font-weight:700;fill:rgba(255,255,255,.9);pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2px}
+.dleg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11px;color:var(--muted2);align-items:center;margin-top:8px}
+.dleg i{display:inline-block;width:40px;height:6px;border-radius:99px;vertical-align:middle;margin-left:6px}
+.dsw{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:7px}
+.dit{display:grid;grid-template-columns:30px minmax(0,1fr) 92px;align-items:center;gap:10px;font-size:12px;flex:none}
+.dit .duf{font-weight:700;color:var(--muted)}
+.dit .tr{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.05)}
+.dit .tr:before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:rgba(255,255,255,.14)}
+.dit .tr i{position:absolute;top:0;bottom:0;border-radius:99px}
+.dit .v{text-align:right;font-weight:700;white-space:nowrap}
+.dtrans{margin-top:12px;padding-top:12px;border-top:1px solid var(--edge);font-size:12px;color:var(--muted);flex:none}
+.dtrans .b2{display:flex;height:8px;border-radius:99px;overflow:hidden;margin:8px 0 5px}
+.dkpis,.dmob{display:none}
+.dmob-only{display:none!important}
+.dmprev{display:none}
+.dmais{font:700 18px var(--body);margin:18px 0 -4px;color:var(--ink)}
+
+
+/* placar estreito: diferença vai para baixo da barra e os números se ajustam à largura do cartão */
+@container (max-width:660px){
+  .dvs{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .dmid{display:none}
+  .ddifm{display:flex}
+  .dc{gap:10px}
+  .dfig{width:64px;gap:4px}
+  .dfoto{width:48px;height:48px;font-size:15px;box-shadow:0 0 0 2px var(--c),0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent)}
+  .dfig figcaption{font-size:10.5px;max-width:64px}
+  .dpc{font-size:clamp(24px,calc((100cqi - 150px)/7.6),52px)}
+}
+/* computador/TV com tela grande: tudo numa tela, sem rolagem */
+@media (min-width:1181px) and (min-height:701px){
+  body.t2 .dash{height:calc(100vh - 32px);height:calc(100dvh - 32px)}
+  .dbot{flex:1;min-height:0}
+  .dbot>.dcard,.dbot>.dcol{min-height:0}
+}
+/* janelas menores: os blocos se reorganizam e a página rola, sem cortar nada */
+@media (max-width:1180px),(max-height:700px){
+  .dbot{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .dbot>.dest{grid-column:1/-1}
+  .dcurva{min-height:230px}
+  .dmapa{aspect-ratio:1/1;max-height:560px}
+  .dprog{order:5;flex-basis:100%;max-width:none;margin-left:0}
+}
+@media (max-width:860px){
+  .dtop{grid-template-columns:minmax(0,1fr)}
+  .dgauge{max-width:200px}
+}
+/* celular: placar preso no topo, abas trocam o conteúdo */
+@media (max-width:760px){
+  body.t2 .wrap{padding-inline:14px;padding-block:10px 32px}
+  .dash{gap:12px}
+  .dhead{gap:10px;flex-wrap:nowrap}
+  .dlogo{flex:1}
+  .dlogo>div{min-width:0}
+  .dlogo small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dlogo b{font-size:15px}
+  .dprog,.dlive{display:none}
+  .dacts{margin-left:auto;flex:none}
+  .dacts select{display:none}
+  .dacts #refresh .txt{display:none}
+  .dtop{display:contents}
+  .dplacar{position:sticky;top:6px;z-index:20;padding:10px 12px 12px;
+    background:rgba(10,13,20,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .dplacar>h3{display:none}
+  .dmob{display:flex}
+  .dmprog{align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:8px}
+  .dmprog b{color:var(--ink);font-size:13px}
+  .dfig figcaption small{display:none}
+  .dvt{display:none}
+  .dbar{height:10px;margin:10px 0 0}
+  .dfoot{display:none}
+  .dmprev{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:10px;font-size:12px;color:var(--muted);border-radius:12px;padding:7px 10px;background:rgba(255,255,255,.04);border:1px solid var(--edge)}
+  .dmprev b{font-weight:700}
+  .dtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:14px;padding:4px}
+  .dtabs button{font:600 13px var(--body);padding:9px 0;border-radius:10px;color:var(--muted2);background:none;border:0}
+  .dtabs button.on{background:rgba(255,255,255,.1);color:var(--ink)}
+  .dbot{display:flex;flex-direction:column;gap:12px}
+  .dbot>*{display:none!important}
+  .dash[data-tab="resumo"] .t-resumo,.dash[data-tab="apur"] .t-apur,.dash[data-tab="estados"] .t-estados{display:flex!important}
+  .dash .dprev{display:none}
+  .dash[data-tab="apur"] .dprev{display:flex;order:2}
+  .dash[data-tab="apur"] .dtabs{order:1}
+  .dash[data-tab="apur"] .dbot{order:3}
+  .dash .dkpis{display:none}
+  .dash[data-tab="resumo"] .dkpis{display:grid!important}
+  .dkpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .dkpis .dtile{padding:12px}
+  .dkpis .dtile b{font-size:24px;display:block;line-height:1.15}
+  .dkpis .hl{background:color-mix(in srgb,var(--c) 14%,transparent);border-color:color-mix(in srgb,var(--c) 35%,transparent)}
+  .dtiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .dtile b{font-size:17px}
+  .dtile em{display:block;margin:0}
+  .dtiles .dtile{padding:10px 8px}
+  .dtiles .dtile small{white-space:normal;line-height:1.25;font-size:10.5px}
+  .dcard{padding:14px;border-radius:18px}
+  .dcurva{min-height:200px}
+  .dmapa{aspect-ratio:auto;max-height:none}
+  .dmapbox{min-height:0;aspect-ratio:600/581}
+  .dsw{overflow:visible}
+  .dest .dtrans{display:none}
+  .dash[data-tab="resumo"] .dmob-only{display:flex!important}
+  .dmais{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -310,7 +496,6 @@ footer a{color:var(--accent)}
     <div class="acts">
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
-      <button id="tema" type="button" class="icon" aria-label="Mudar tema" title="Mudar tema"><span aria-hidden="true">☾</span></button>
       <button id="refresh" type="button" class="primary" aria-label="Atualizar agora"><span aria-hidden="true">↻</span><span class="txt"> Atualizar<span class="long"> agora</span></span></button>
     </div>
   </nav>
@@ -318,6 +503,38 @@ footer a{color:var(--accent)}
   <div id="notice" class="notice" hidden></div>
 
   <div id="viewBR" class="view">
+  <section id="dash" class="dash" hidden data-tab="resumo" aria-label="Resumo da apuração do 2º turno">
+    <div class="dhead">
+      <div class="dlogo"><i aria-hidden="true">BR</i><div><b>Presidente · 2º turno</b><small id="dSub">Dados oficiais do TSE</small></div></div>
+      <div class="dprog"><span class="dmono">Seções apuradas</span><div class="dtr"><span id="dBar" style="width:0%"></span></div><b class="num" id="dPst">—</b></div>
+      <div class="dlive"><span class="ddot"></span><span id="dLive">Conectando ao TSE…</span></div>
+      <span class="dpill" id="dOnline" hidden></span>
+      <div class="dacts" id="dActs"></div>
+    </div>
+    <div class="dtop">
+      <div class="dcard dplacar" aria-live="polite">
+        <div class="dmob dmprog"><span class="ddot"></span><b>2º turno</b><div class="dtr"><span id="dBarM" style="width:0%"></span></div><b class="num" id="dPstM">—</b></div>
+        <h3>Placar agora<span class="sp"></span><span class="dmono">votos válidos</span></h3>
+        <div id="dVs"></div>
+        <div class="dmprev num" id="dMPrev" hidden></div>
+      </div>
+      <div class="dcard dprev" id="dPrev"></div>
+    </div>
+    <div class="dtabs" role="tablist" aria-label="Seções">
+      <button type="button" class="on" data-dt="resumo">Resumo</button><button type="button" data-dt="apur">Apuração</button><button type="button" data-dt="estados">Estados</button>
+    </div>
+    <div class="dbot">
+      <div class="dcol t-apur">
+        <div class="dcard"><h3>Evolução da apuração<span class="sp"></span><span class="dmono" id="dCurvaLeg"></span></h3><div class="dcurva" id="dCurva"></div></div>
+        <div class="dtiles num" id="dTiles"></div>
+      </div>
+      <div class="dcard dmapa t-resumo"><h3>Mapa por estado<span class="sp"></span><span class="dseg" id="dMapSeg"><button type="button" class="on" data-dm="lider">Líder</button><button type="button" data-dm="var">Ganho vs 1º</button></span></h3><div class="dmapbox" id="dMapa"></div><div class="dleg" id="dLeg"></div></div>
+      <div class="dkpis num t-resumo" id="dKpis"></div>
+      <div class="dcard t-resumo dmob-only" id="dTransMBox"><h3>Votos dos eliminados no 1º turno</h3><div id="dTransM"></div></div>
+      <div class="dcard dest t-estados"><h3>Quem cresceu desde o 1º turno<span class="sp"></span><span class="dmono">p.p.</span></h3><div class="dsw num" id="dSw"></div><div class="dtrans" id="dTrans"></div></div>
+    </div>
+  </section>
+  <h2 class="dmais" id="dMais" hidden>Mais detalhes</h2>
   <section class="status" aria-live="polite">
     <div class="status-top">
       <div>
@@ -513,12 +730,12 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261022-111959"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261022-115318"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
 const POLL_CANDS = [["13","Lula"],["22","Flávio Bolsonaro"],["55","Ronaldo Caiado"],["30","Zema"],["14","Renan Santos"],["70","Augusto Cury"]];
-const POLL_COLORS = {"13":"#d1462f","22":"#1f6fd1","14":"#e3a21a","55":"#1b9e77","70":"#7a4cc2","30":"#c2407e"};
+const POLL_COLORS = {"13":"#f43f5e","22":"#3b82f6","14":"#e3a21a","55":"#1b9e77","70":"#7a4cc2","30":"#c2407e"};
 const POLLS_CSV = `AtlasIntel,2026-10-02,46.7,43.8,1.4,0.3,4.6,2.1,0.6
 Futura,2026-10-03,40.5,42.5,3.7,0.8,2.6,3.9,2.6
 Datafolha,2026-10-03,42,40,4,0,3,3,7
@@ -829,6 +1046,7 @@ async function load(){
     renderStatus(); renderCands(); renderDuelo(); renderTotals(); renderChart(); renderPolls();
     renderMap(); renderUfDetail(); renderTable(); renderCmp(); renderCmp1(); ajustaTurno();
     if(turno2()){ carregaPrev(); renderPrev(); }
+    renderDash();
     renderEnv(); // limpa um aviso de falha anterior
     state.lidoEm = Date.now();
   }catch(err){
@@ -1703,7 +1921,7 @@ function ajustaTurno(){
   if(state.view==="br") $("pageTitle").textContent = "Apuração para Presidente da República" + (t2?" · 2º turno":"");
 }
 // redesenha os gráficos quando a largura muda (girar o celular, redimensionar a janela, trocar de aba)
-let tRedesenho; addEventListener("resize",()=>{ clearTimeout(tRedesenho); tRedesenho=setTimeout(()=>{ if(state.br && state.view==="br"){ renderChart(); renderPolls(); renderCmp(); if(turno2()) renderPrev(); } },200); });
+let tRedesenho; addEventListener("resize",()=>{ clearTimeout(tRedesenho); tRedesenho=setTimeout(()=>{ if(state.br && state.view==="br"){ renderChart(); renderPolls(); renderCmp(); if(turno2()){ renderPrev(); renderDashCurva(); ajustaListaDash(); } } },200); });
 
 function refreshAll(){
   load();
@@ -1739,6 +1957,7 @@ function tick(){
     : (loading||loadingGO) ? "Lendo o TSE…"
     : lido==null ? "Aguardando a primeira leitura" : `Lido do TSE há ${lido}s · automático`;
   $("next").textContent = t;
+  const dl=$("dLive"); if(dl) dl.textContent = state.paused ? "Pausado" : (loading||loadingGO) ? "Lendo o TSE…" : lido==null ? "Conectando ao TSE…" : `Ao vivo · TSE há ${lido}s`;
 }
 state.nextAt = Date.now() + REFRESH_S*1000;
 function passo(){
@@ -1787,18 +2006,6 @@ init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); 
   document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") checa(); });
 })();
 
-/* ---------- tema claro/escuro: segue o sistema até a pessoa escolher; a escolha fica salva no aparelho ---------- */
-(function tema(){
-  const btn=$("tema"), root=document.documentElement, mq=matchMedia("(prefers-color-scheme: dark)");
-  const escuro = () => root.dataset.theme ? root.dataset.theme==="dark" : mq.matches;
-  const mostra = () => { const e=escuro(); btn.firstElementChild.textContent = e ? "☀" : "☾";
-    btn.setAttribute("aria-label", e ? "Usar tema claro" : "Usar tema escuro"); btn.title = btn.getAttribute("aria-label"); };
-  btn.onclick = () => { const novo = escuro() ? "light" : "dark"; root.dataset.theme = novo;
-    try{ localStorage.setItem("tema", novo==="dark" ? "escuro" : "claro"); }catch{} mostra(); };
-  mq.addEventListener?.("change", mostra);
-  mostra();
-})();
-
 /* aviso do servidor (Cloudflare) com a última totalização do TSE: se for diferente da que está na tela, lê na hora */
 function avisoTSE(tse){
   if(state.paused || loading || loadingGO || !state.ele) return;
@@ -1818,7 +2025,7 @@ function recebePrev(p){
   state.prev = p;
   const chave = p.calculado;
   if(!state.prevHist.some(x=>x.calculado===chave)){ state.prevHist.push({calculado:p.calculado, pst:p.pst_tse??0, pA:p.pA, lo90:p.lo90, hi90:p.hi90, ht:p.ht_tse}); state.prevHist.sort((a,b)=>a.calculado<b.calculado?-1:1); }
-  renderPrev();
+  renderPrev(); renderDash();
 }
 async function carregaPrev(){
   if(!turno2() || state.prevCarregada) return;
@@ -1826,7 +2033,7 @@ async function carregaPrev(){
   try{ const r=await fetch(PREV_URL,{cache:"no-store"}); if(r.ok) recebePrev(await r.json()); }catch{}
   try{ const r=await fetch(`${HIST_REMOTE}previsao-${state.ele.cd}.json?t=${Math.floor(Date.now()/60e3)}`,{cache:"no-store"});
     if(r.ok){ (await r.json()).forEach(x=>{ if(!state.prevHist.some(y=>y.calculado===x.calculado)) state.prevHist.push({calculado:x.calculado, pst:x.pst_tse, pA:x.pA, lo90:x.lo90, hi90:x.hi90, ht:x.ht_tse}); });
-      state.prevHist.sort((a,b)=>a.calculado<b.calculado?-1:1); renderPrev(); } }catch{}
+      state.prevHist.sort((a,b)=>a.calculado<b.calculado?-1:1); renderPrev(); renderDash(); } }catch{}
 }
 function renderPrev(){
   const sec=$("prev"), p=state.prev;
@@ -1874,13 +2081,194 @@ function renderPrevGraf(cA, cB){
     <div class="legend"><span>Linha = previsão para ${esc(nomeBonito(state.br.cands.find(c=>c.n===state.prev.A)?.nm||""))} · faixa = 90% · eixo = % das seções apuradas</span></div>`;
 }
 
+
+/* ---------- quadro principal do 2º turno ---------- */
+state.dtab = "resumo"; state.dmap = "lider";
+const nomeCurto = c => nomeBonito(c.nm).replace(/\bFlavio\b/,"Flávio");
+const primeiroNome = c => nomeCurto(c).split(" ")[0];
+const corTxt = c => `color-mix(in srgb, ${c} 70%, #fff)`;
+window.fotoFalhou = img => { const s=document.createElement("span"); s.className=img.className; s.style.cssText=img.style.cssText; s.textContent=img.dataset.ini||"?"; img.replaceWith(s); };
+const fotoDash = c => `<img class="dfoto" style="--c:${colorFor(c.n)}" src="${esc(fotoUrl(c.sq,state.ele))}" alt="" width="72" height="72" data-ini="${esc(initials(nomeCurto(c)))}" onerror="fotoFalhou(this)">`;
+const fmt1 = x => x.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+const miOu = v => v>=1e6 ? (v/1e6).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+" mi" : nf.format(v);
+// parcela de A entre os dois num resultado (null se ainda sem votos)
+function parcelaA(d,a,b){ if(!d) return null; const x=d.cands.find(c=>c.n===a.n)?.vap||0, y=d.cands.find(c=>c.n===b.n)?.vap||0; return x+y>0 ? x/(x+y)*100 : null; }
+function corMargem(c,s){ // s = parcela do líder (50..100): mais escuro quanto maior a vantagem
+  const k=Math.max(0,Math.min(1,(s-50)/18));
+  return k<.5 ? `color-mix(in srgb, ${c} ${Math.round(60+k*80)}%, #fff)` : `color-mix(in srgb, ${c} ${Math.round(100-(k-.5)*80)}%, #000)`;
+}
+function renderDash(){
+  const t2=turno2(), sec=$("dash");
+  document.body.classList.toggle("t2", !!t2);
+  $("dMais").hidden = !t2;
+  // seletor de turno e botão de atualizar ficam no topo do quadro no 2º turno
+  const acts = t2 ? $("dActs") : document.querySelector(".toolbar .acts");
+  if($("refresh").parentElement!==acts){ acts.prepend($("turno")); acts.append($("refresh")); }
+  sec.hidden = !(t2 && state.br && dupla());
+  if(sec.hidden) return;
+  const br=state.br, [a,b]=dupla(), ca=colorFor(a.n), cb=colorFor(b.n), b1=state.base1;
+  const started = br.cands.some(c=>c.vap>0), final = br.tf==="s" && br.pst>=100;
+  $("dPst").textContent = $("dPstM").textContent = pf(br.pst);
+  $("dBar").style.width = $("dBarM").style.width = Math.min(100,br.pst)+"%";
+  $("dSub").textContent = started ? `TSE · ${final?"totalização concluída":"totalização às "+(br.ht||br.hg||"").slice(0,5)}` : "Dados oficiais do TSE";
+  // placar
+  const lado = (c,cor,r) => `<div class="dc${r?" r":""}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
+      <div class="dnums"><div class="dpc" style="color:${corTxt(cor)}">${started?pf(c.pv):"—"}</div><div class="dvt">${nf.format(c.vap)} votos</div></div></div>`;
+  const dif = Math.abs(a.vap-b.vap), lider = a.vap>=b.vap ? a : b;
+  const s1 = parcelaA(b1?.br,a,b);
+  $("dVs").innerHTML = `<div class="dvs num">${lado(a,ca,false)}
+      <div class="dmid">${started?`<span class="dmono">diferença</span><b>${miOu(dif)}</b><small>${dif?esc(primeiroNome(lider))+" à frente":"empate"}</small>`:`<span class="dmono">apuração</span><b>às 17h</b>`}</div>
+      ${lado(b,cb,true)}</div>
+    <div class="dbar" role="img" aria-label="${esc(nomeCurto(a))} ${pf(a.pv)} contra ${esc(nomeCurto(b))} ${pf(b.pv)}"><i style="width:${started?a.pv/(a.pv+b.pv)*100:50}%;background:linear-gradient(90deg,color-mix(in srgb,${ca} 80%,#000),${ca})"></i><i style="flex:1;background:linear-gradient(90deg,${cb},color-mix(in srgb,${cb} 80%,#000))"></i></div>
+    <div class="ddifm">${started?`Diferença: <b>${miOu(dif)}</b> · ${dif?esc(primeiroNome(lider))+" à frente":"empate"}`:"A apuração começa às 17h"}</div>
+    <div class="dfoot"><span>${s1!=null?`No 1º turno, entre os dois: <b>${esc(nomeCurto(a))} ${pf(s1)}</b> × ${esc(nomeCurto(b))} ${pf(100-s1)}`:""}</span><span>Traço branco = 50%</span></div>`;
+  renderDashPrev(a,b,ca,cb,final);
+  renderDashTiles(b1);
+  renderDashMapa(a,b,ca,cb);
+  renderDashEstados(a,b);
+  renderDashCurva();
+}
+function renderDashPrev(a,b,ca,cb,final){
+  const p=state.prev, box=$("dPrev"), m=$("dMPrev"); state.dKpiPrev=null;
+  if(final){
+    const v=[a,b].sort((x,y)=>y.vap-x.vap)[0], cv=colorFor(v.n);
+    box.innerHTML=`<h3>Resultado final<span class="sp"></span><span class="dpill">TSE</span></h3><div class="dvazio" style="margin:auto"><b style="display:block;font:800 30px var(--body);color:${corTxt(cv)}">${esc(nomeCurto(v))}</b>${pf(v.pv)} dos votos válidos · totalização concluída</div>`;
+    m.hidden=true; $("dTrans").innerHTML=$("dTransM").innerHTML=""; return;
+  }
+  if(!p || !(p.A===a.n||p.A===b.n)){
+    box.innerHTML=`<h3>Previsão do resultado final<span class="sp"></span><span class="dpill">modelo</span></h3><div class="dvazio">A previsão aparece em instantes.</div>`;
+    m.hidden=true; $("dTrans").innerHTML=$("dTransM").innerHTML=""; return;
+  }
+  const cand = n => n===a.n?a:b;
+  const A=cand(p.A), B=cand(p.B), cA=colorFor(A.n), cB=colorFor(B.n);
+  const favA = p.chanceA>=0.5, F=favA?A:B, cF=favA?cA:cB, chance=favA?p.chanceA:1-p.chanceA, pF=(favA?p.pA:1-p.pA)*100;
+  const lo=p.lo90*100, hi=p.hi90*100, fLo=favA?lo:100-hi, fHi=favA?hi:100-lo;
+  const antes = !(p.municipios_apurados>0);
+  const hora = p.calculado ? new Date(p.calculado).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}) : "";
+  const arco = 267, gauge = MOSTRAR_CHANCE
+    ? `<div class="dgauge"><svg viewBox="0 0 200 112" aria-hidden="true"><path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14" stroke-linecap="round"/>
+        <path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="${cF}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${arco}" stroke-dashoffset="${(arco*(1-chance)).toFixed(1)}"/></svg>
+        <div class="c"><b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b><small>chance de vitória · ${esc(primeiroNome(F))}</small></div></div>` : "";
+  const outro = favA?B:A;
+  box.innerHTML = `<h3>Previsão do resultado final<span class="sp"></span><span class="dpill">modelo</span></h3>${gauge}
+    <div class="drow3 num"><span>Projeção<b style="color:${corTxt(cF)}">${fmt1(pF)}%</b></span><span>Faixa 90%<b>${fmt1(fLo)}–${fmt1(fHi)}</b></span><span>${esc(primeiroNome(outro))}<b>${MOSTRAR_CHANCE?Math.round((1-chance)*100)+"%":fmt1(100-pF)+"%"}</b></span></div>
+    <div class="dbandw"><div class="dband" role="img" aria-label="Faixa provável para ${esc(A.nm)}: ${fmt1(lo)}% a ${fmt1(hi)}%"><i style="width:${lo}%;background:${cA}"></i><i class="fx" style="width:${hi-lo}%;background-color:color-mix(in srgb,${cA} 50%,${cB})"></i><i style="flex:1;background:${cB}"></i></div></div>
+    <div class="dprevsub">${antes?"Antes da apuração: média das pesquisas de 2º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
+  m.hidden=false;
+  m.innerHTML = `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
+  // votos dos eliminados
+  const t=Math.round(p.t*100), tA=p.A===a.n?t:100-t;
+  const tr = `<span>Votos de Cury, Renan, Caiado, Zema e outros${antes?" · pelas pesquisas":""}</span>
+    <div class="b2"><i style="width:${tA}%;background:${colorFor(a.n)}"></i><i style="flex:1;background:${colorFor(b.n)}"></i></div>
+    <div class="dfoot" style="display:flex"><span><b>${tA}%</b> para ${esc(primeiroNome(a))}</span><span><b>${100-tA}%</b> para ${esc(primeiroNome(b))}</span></div>`;
+  $("dTrans").innerHTML = $("dTransM").innerHTML = tr;
+  // chance e projeção também nos números do celular
+  state.dKpiPrev = {chance:Math.round(chance*100), F:primeiroNome(F), cF, pF, fLo, fHi, outro:primeiroNome(outro)};
+}
+function renderDashTiles(b1){
+  const {e,v}=state.br, started=state.br.cands.some(c=>c.vap>0);
+  const bn = d => { const tv=num(d.v.tv)||(num(d.v.vv)+num(d.v.vb)+num(d.v.tvn||d.v.vn)); return tv ? (num(d.v.vb)+num(d.v.tvn||d.v.vn))/tv*100 : 0; };
+  const it = (nome, val, ref, bomSubir) => { if(!started) return {nome, val:"—", d:""};
+    const x=val-ref, cls = Math.abs(x)<0.05 ? "" : ((x>0)===bomSubir ? "dup" : "ddn");
+    return {nome, val:pf(val), d: ref!=null&&b1 ? `<em class="${cls}">${sinalPP(x)}</em>` : ""}; };
+  const comp = it("Comparecimento", pctn(e,"pc"), b1?pctn(b1.br.e,"pc"):null, true);
+  const brn = it("Brancos e nulos", bn(state.br), b1?bn(b1.br):null, false);
+  const abs = it("Abstenção", pctn(e,"pa"), b1?pctn(b1.br.e,"pa"):null, false);
+  $("dTiles").innerHTML = [comp,brn,abs].map(t=>`<div class="dtile"><small>${t.nome}</small><b>${t.val}</b>${t.d}</div>`).join("");
+  const k=state.dKpiPrev, kp = k ? `<div class="dtile hl" style="--c:${k.cF}"><small>Chance de vitória</small><b style="color:${corTxt(k.cF)}">${k.chance}%</b><span class="sub">${esc(k.F)} · ${esc(k.outro)} ${100-k.chance}%</span></div>
+      <div class="dtile"><small>Projeção final</small><b>${fmt1(k.pF)}%</b><span class="sub">${esc(k.F)} · faixa ${fmt1(k.fLo)}–${fmt1(k.fHi)}</span></div>` : "";
+  const sub = t => `<span class="sub">${t.d?t.d.replace("<em",'<span').replace("</em>"," vs 1º turno</span>"):"&nbsp;"}</span>`;
+  $("dKpis").innerHTML = kp + [comp,brn].map(t=>`<div class="dtile"><small>${t.nome}</small><b>${t.val}</b>${sub(t)}</div>`).join("");
+}
+function renderDashMapa(a,b,ca,cb){
+  const b1=state.base1, varm = state.dmap==="var" && b1;
+  const formas = UFS.filter(u=>MAPA_BR.uf[u]).map(uf=>{
+    const g=MAPA_BR.uf[uf], d=state.ufs[uf], s=parcelaA(d,a,b);
+    let fill="var(--line)", dica=UF_NAMES[uf]+" · sem votos apurados";
+    if(s!=null){
+      if(varm){ const s1=parcelaA(b1.ufs[uf],a,b); const sw = s1==null?0:s-s1, c=sw>=0?ca:cb, k=Math.min(1,Math.abs(sw)/5);
+        fill=`color-mix(in srgb, ${c} ${Math.round(25+k*75)}%, var(--line))`; dica=`${UF_NAMES[uf]} · ${sw>=0?nomeCurto(a):nomeCurto(b)} ${sinalPP(Math.abs(sw))} p.p. vs 1º turno`; }
+      else { const lead=s>=50, sl=lead?s:100-s; fill=corMargem(lead?ca:cb, sl); dica=`${UF_NAMES[uf]} · ${nomeCurto(lead?a:b)} ${pf(sl)} · ${pf(d.pst)} apurado`; }
+    }
+    return `<path d="${g.d}" style="fill:${fill}" data-uf="${uf}" tabindex="0" role="button" aria-label="${esc(dica)}"><title>${esc(dica)}</title></path>`; }).join("");
+  const rot = UFS.filter(u=>MAPA_BR.uf[u] && MAPA_BR.uf[u].a>1400).map(uf=>{ const g=MAPA_BR.uf[uf], fs=Math.max(15,Math.min(24,Math.sqrt(g.a)/3.4)); return `<text x="${g.c[0]}" y="${(g.c[1]+fs*.35).toFixed(1)}" style="font-size:${fs.toFixed(1)}px" text-anchor="middle">${uf.toUpperCase()}</text>`; }).join("");
+  $("dMapa").innerHTML = `<svg viewBox="0 0 ${MAPA_BR.w} ${MAPA_BR.h}" role="group" aria-label="Mapa do Brasil por estado">${formas}<g aria-hidden="true">${rot}</g></svg>`;
+  $("dLeg").innerHTML = varm ? `<span>Cor = quem ganhou terreno desde o 1º turno</span>`
+    : `<span>${esc(nomeCurto(a))}<i style="background:linear-gradient(90deg,color-mix(in srgb,${ca} 60%,#fff),color-mix(in srgb,${ca} 60%,#000))"></i></span><span>${esc(nomeCurto(b))}<i style="background:linear-gradient(90deg,color-mix(in srgb,${cb} 60%,#fff),color-mix(in srgb,${cb} 60%,#000))"></i></span><span>tom = vantagem</span>`;
+  $("dMapSeg").hidden = !b1;
+}
+function renderDashEstados(a,b){
+  const b1=state.base1, box=$("dSw");
+  const linhas = b1 ? UFS.filter(u=>u!=="zz").map(u=>{ const s2=parcelaA(state.ufs[u],a,b), s1=parcelaA(b1.ufs[u],a,b);
+    return s2==null||s1==null ? null : {u, sw:s2-s1}; }).filter(Boolean).sort((x,y)=>Math.abs(y.sw)-Math.abs(x.sw)) : [];
+  if(!linhas.length){ box.innerHTML=`<div class="dvazio">Aparece com os primeiros votos apurados nos estados: quanto cada um ganhou ou perdeu em relação ao 1º turno.</div>`; return; }
+  const max=Math.max(1,...linhas.map(l=>Math.abs(l.sw)));
+  box.innerHTML = linhas.map(l=>{ const A=l.sw>=0, c=colorFor(A?a.n:b.n), w=Math.abs(l.sw)/max*50;
+    return `<div class="dit" title="${esc(UF_NAMES[l.u])}"><span class="duf">${l.u.toUpperCase()}</span><div class="tr"><i style="${A?`right:50%;width:${w}%;background:linear-gradient(270deg,${c},color-mix(in srgb,${c} 55%,#fff))`:`left:50%;width:${w}%;background:linear-gradient(90deg,${c},color-mix(in srgb,${c} 55%,#fff))`}"></i></div><span class="v" style="color:${corTxt(c)}">${esc(primeiroNome(A?a:b))} +${fmt1(Math.abs(l.sw))}</span></div>`; }).join("");
+  ajustaListaDash();
+}
+// no computador a lista mostra só as linhas que cabem inteiras no cartão
+function ajustaListaDash(){
+  const box=$("dSw"); if(!box || $("dash").hidden) return;
+  const rows=[...box.querySelectorAll(".dit")]; rows.forEach(r=>r.hidden=false);
+  if(matchMedia("(max-width:760px)").matches) return;
+  const lim=box.clientHeight; if(!lim) return;
+  rows.forEach(r=>{ if(r.offsetTop - box.offsetTop + r.offsetHeight > lim) r.hidden=true; });
+}
+function renderDashCurva(){
+  const box=$("dCurva"); if(!box || $("dash").hidden) return;
+  const par=dupla(); if(!par) return; const [a,b]=par, ca=colorFor(a.n), cb=colorFor(b.n);
+  const h=(state.hist||[]).filter(hasVotes).filter(p=>p.cand[a.n]&&p.cand[b.n]);
+  const W=box.clientWidth, H=box.clientHeight;
+  if(!W || !H) return;
+  if(h.length<2 || !state.br.cands.some(c=>c.vap>0)){ box.innerHTML=`<div class="dvazio" style="position:absolute;inset:0;display:grid;place-items:center">A curva começa com as primeiras atualizações do TSE, a partir das 17h.</div>`; return; }
+  const sh = p => { const x=p.cand[a.n][0], y=p.cand[b.n][0]; return x+y ? x/(x+y)*100 : 50; };
+  const p=state.prev, temPrev = p && !(state.br.tf==="s") && (p.A===a.n||p.A===b.n);
+  const fim = temPrev ? (p.A===a.n ? p.pA*100 : 100-p.pA*100) : null;
+  const lo = temPrev ? (p.A===a.n ? p.lo90*100 : 100-p.hi90*100) : null, hi = temPrev ? (p.A===a.n ? p.hi90*100 : 100-p.lo90*100) : null;
+  let dev=4; h.forEach(q=>{ dev=Math.max(dev, Math.abs(sh(q)-50)+1); }); if(temPrev) dev=Math.max(dev, Math.abs(lo-50)+1, Math.abs(hi-50)+1);
+  dev=Math.ceil(dev/2)*2;
+  const L=8, R=40, T=10, B=22, X=v=>L+v/100*(W-L-R), Y=v=>T+(1-(v-(50-dev))/(2*dev))*(H-T-B);
+  const pa=h.map(q=>[X(q.pst),Y(sh(q))]), pb=h.map(q=>[X(q.pst),Y(100-sh(q))]);
+  const ln = pts => "M"+pts.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" L");
+  const area = pts => `${ln(pts)} L${pts[pts.length-1][0].toFixed(1)},${Y(50).toFixed(1)} L${pts[0][0].toFixed(1)},${Y(50).toFixed(1)}Z`;
+  const passo = dev>8?4:2; let g="";
+  for(let v=50-dev; v<=50+dev; v+=passo) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="rgba(255,255,255,${v===50?.2:.06})" ${v===50?'stroke-dasharray="4 4"':""}/><text x="${W-R+6}" y="${(Y(v)+4).toFixed(1)}">${v}%</text>`;
+  [0,25,50,75,100].forEach(v=>g+=`<text x="${X(v).toFixed(1)}" y="${H-6}" text-anchor="${v===0?"start":v===100?"end":"middle"}">${v}%</text>`);
+  const ult=h[h.length-1], xu=X(ult.pst);
+  let proj="";
+  if(temPrev && ult.pst<99.5){
+    proj=`<rect x="${xu.toFixed(1)}" y="${Y(hi).toFixed(1)}" width="${(X(100)-xu).toFixed(1)}" height="${(Y(lo)-Y(hi)).toFixed(1)}" fill="${ca}" fill-opacity=".14"/>
+      <rect x="${xu.toFixed(1)}" y="${Y(100-lo).toFixed(1)}" width="${(X(100)-xu).toFixed(1)}" height="${(Y(100-hi)-Y(100-lo)).toFixed(1)}" fill="${cb}" fill-opacity=".14"/>
+      <path d="M${xu.toFixed(1)},${pa[pa.length-1][1].toFixed(1)} L${X(100).toFixed(1)},${Y(fim).toFixed(1)}" stroke="${ca}" stroke-width="1.8" stroke-dasharray="5 5" fill="none"/>
+      <path d="M${xu.toFixed(1)},${pb[pb.length-1][1].toFixed(1)} L${X(100).toFixed(1)},${Y(100-fim).toFixed(1)}" stroke="${cb}" stroke-width="1.8" stroke-dasharray="5 5" fill="none"/>
+      <line x1="${xu.toFixed(1)}" x2="${xu.toFixed(1)}" y1="${T}" y2="${H-B}" stroke="rgba(255,255,255,.15)"/>
+      ${X(100)-xu>70?`<text x="${(xu+6).toFixed(1)}" y="${T+10}" style="fill:var(--muted)">projeção →</text>`:""}`;
+  }
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução da apuração: parcela de cada candidato entre os votos válidos por % apurado">
+    <defs><linearGradient id="dga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ca}" stop-opacity=".3"/><stop offset="1" stop-color="${ca}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="dgb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${cb}" stop-opacity=".3"/><stop offset="1" stop-color="${cb}" stop-opacity="0"/></linearGradient></defs>
+    ${g}<path d="${area(pa)}" fill="url(#dga)"/><path d="${area(pb)}" fill="url(#dgb)"/>${proj}
+    <path d="${ln(pa)}" fill="none" stroke="${ca}" stroke-width="2.5" stroke-linejoin="round"/><path d="${ln(pb)}" fill="none" stroke="${cb}" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="${pa[pa.length-1][0].toFixed(1)}" cy="${pa[pa.length-1][1].toFixed(1)}" r="4" fill="${ca}"/><circle cx="${pb[pb.length-1][0].toFixed(1)}" cy="${pb[pb.length-1][1].toFixed(1)}" r="4" fill="${cb}"/></svg>`;
+  $("dCurvaLeg").textContent = temPrev ? "tracejado = projeção" : "× % apurado";
+}
+document.querySelector("#dash .dtabs").addEventListener("click",e=>{ const bt=e.target.closest("[data-dt]"); if(!bt) return;
+  state.dtab=bt.dataset.dt; $("dash").dataset.tab=state.dtab;
+  document.querySelectorAll("#dash .dtabs button").forEach(x=>{ x.classList.toggle("on",x===bt); x.setAttribute("aria-selected",x===bt); });
+  renderDashCurva(); ajustaListaDash(); });
+$("dMapSeg").addEventListener("click",e=>{ const bt=e.target.closest("[data-dm]"); if(!bt) return;
+  state.dmap=bt.dataset.dm; document.querySelectorAll("#dMapSeg button").forEach(x=>x.classList.toggle("on",x===bt)); renderDash(); });
+$("dMapa").addEventListener("click",e=>{ const p=e.target.closest("[data-uf]"); if(p) selecionaUF(p.dataset.uf,{levarAoResultado:true}); });
+$("dMapa").addEventListener("keydown",e=>{ const p=e.target.closest("[data-uf]"); if(p && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); selecionaUF(p.dataset.uf,{levarAoResultado:true}); } });
+
 /* ---------- pessoas online (Cloudflare Worker + Durable Object) ---------- */
 const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
 (function online(){
   if(!/^https?:$/.test(location.protocol) || ONLINE_WS.includes("__")) return;
   let ws, espera=2000, ping;
   const pill=$("online"), n=$("onlineN");
-  const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"dispositivo":"dispositivos"} online`; };
+  const mostra = v => { pill.hidden=false; n.textContent = `${nf.format(v)} ${v===1?"dispositivo":"dispositivos"} online`; const d=$("dOnline"); d.hidden=false; d.textContent=`${nf.format(v)} online`; };
   // código aleatório deste navegador: igual em todas as abas, para contar dispositivos e não abas
   let disp = store.get("dispositivo", "");
   if(!/^[a-z0-9-]{8,40}$/.test(disp)){ disp = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36)).toLowerCase(); store.set("dispositivo", disp); }
@@ -1888,7 +2276,7 @@ const ONLINE_WS = "wss://painel-online.pedro0-75c.workers.dev/";
     try{ ws=new WebSocket(ONLINE_WS+"?d="+encodeURIComponent(disp)); }catch{ return; }
     ws.onopen=()=>{ espera=2000; clearInterval(ping); ping=setInterval(()=>{ try{ ws.send("ping"); }catch{} },45000); ws.send("conta"); };
     ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(typeof d.online==="number") mostra(d.online); if(d.tse) avisoTSE(d.tse); if(d.prev && turno2()) recebePrev(d.prev); }catch{} };
-    ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };
+    ws.onclose=()=>{ clearInterval(ping); pill.hidden=true; $("dOnline").hidden=true; setTimeout(()=>{ if(ws.readyState>1) conecta(); },espera); espera=Math.min(espera*2,60000); };
   }
   document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && ws && ws.readyState>1){ espera=2000; conecta(); } });
   conecta();

@@ -104,6 +104,24 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .bar .poll{position:absolute;top:-5px;bottom:-5px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
 .vs{font:.75rem var(--mono);color:var(--muted)}
 .vs-mob{display:none}
+.duelo{display:grid;gap:8px;padding:4px 0 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.duelo-nomes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end}
+.duelo-nomes>div{display:grid;gap:2px;min-width:0}
+.duelo-nomes .r{text-align:right}
+.duelo-nomes b{font:600 1.05rem/1.2 var(--display);overflow-wrap:anywhere}
+.duelo-nomes .pc{font:700 2.1rem/1 var(--display)}
+.duelo-nomes small{color:var(--muted);font-size:.82rem}
+.duelo-bar{position:relative;display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--line)}
+.duelo-bar i{display:block;height:100%;transition:width .6s}
+.duelo-bar .meio{position:absolute;left:50%;top:-3px;bottom:-3px;border-left:2px solid var(--surface)}
+.duelo-1t{font-size:.8rem;color:var(--muted)}
+.c1tab td .sub,.c1tab th .sub{display:block;font-size:.74rem;color:var(--muted)}
+.c1tab th .sub{font-size:.66rem;text-transform:none;letter-spacing:0}
+.c1tab .up{color:var(--accent)} .c1tab .down{color:var(--bad)}
+.timeline22{display:grid;gap:6px;font-size:.88rem;margin:0;padding:0;list-style:none}
+.timeline22 li{display:grid;grid-template-columns:5.2rem minmax(0,1fr);gap:8px;padding:4px 0;border-top:1px solid var(--line)}
+.timeline22 li:first-child{border-top:0}
+.timeline22 b{font-family:var(--mono);font-size:.8rem}
 .proj{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
 .proj summary{cursor:pointer;list-style-position:inside}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
@@ -163,6 +181,7 @@ table.polltable{min-width:520px}
   .seg .l{display:none}
   .seg .s{display:inline}
   #refresh .txt{display:none}
+  #turno{display:none}
   .acts #pause,.acts .long{display:none}
   .acts button{padding:10px 12px;min-height:40px}
   .need{font-size:.74rem}
@@ -302,8 +321,9 @@ footer a{color:var(--accent)}
     <section class="panel">
       <div class="panel-head">
         <h2>Votos válidos</h2>
-        <span class="eyebrow">Tracejado = 50% · traço escuro = média das pesquisas</span>
+        <span class="eyebrow" id="candsLeg">Tracejado = 50% · traço escuro = média das pesquisas</span>
       </div>
+      <div class="duelo num" id="duelo" hidden></div>
       <div class="cands" id="cands"></div>
     </section>
 
@@ -339,6 +359,26 @@ footer a{color:var(--accent)}
         <div class="tablewrap boletins"><table class="polltable"><thead id="bolHead"></thead><tbody id="bolBody"></tbody></table></div>
       </div>
     </div>
+  </section>
+
+  <section class="panel" id="cmp1t" hidden>
+    <div class="panel-head">
+      <div>
+        <h2>Comparação com o 1º turno</h2>
+        <div class="meta" style="display:block">Quanto cada candidato tem agora no 2º turno e quanto teve no 1º turno, no Brasil e em cada estado.</div>
+      </div>
+    </div>
+    <div class="cmpgrid num" id="c1Resumo"></div>
+    <div class="panel-head">
+      <div class="eyebrow">Por estado</div>
+      <div class="controls" role="group" aria-label="Ordenar estados">
+        <button type="button" class="seg on" data-c1="te">Mais eleitores</button>
+        <button type="button" class="seg" data-c1="a">Mais cresceu: <span data-c1n="a">—</span></button>
+        <button type="button" class="seg" data-c1="b">Mais cresceu: <span data-c1n="b">—</span></button>
+      </div>
+    </div>
+    <div class="tablewrap"><table class="c1tab"><thead id="c1Head"></thead><tbody id="c1Tab"></tbody></table></div>
+    <div class="meta" style="font-size:.78rem;display:block">No 1º turno o percentual é sobre os votos de todos os candidatos; no 2º turno, só sobre os dois. Por isso os dois tendem a subir. No começo da apuração a comparação por estado pode distorcer, porque nem todas as regiões do estado chegaram.</div>
   </section>
 
   <section class="panel" id="cmp2022">
@@ -383,7 +423,13 @@ footer a{color:var(--accent)}
   <section class="panel">
     <div class="panel-head">
       <h2>Por estado</h2>
-      <span class="eyebrow">Cor = quem lidera · tom = quanto já foi apurado</span>
+      <div class="controls">
+        <span class="eyebrow" id="mapLeg">Cor = quem lidera · tom = quanto já foi apurado</span>
+        <span class="controls" role="group" aria-label="Cor do mapa" id="mapModos" hidden>
+          <button type="button" class="seg on" data-mm="lider">Quem lidera</button>
+          <button type="button" class="seg" data-mm="var">Variação vs 1º turno</button>
+        </span>
+      </div>
     </div>
     <div class="mapwrap">
       <div class="ufpick" id="ufPick" role="group" aria-label="Escolher estado"></div>
@@ -465,7 +511,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261004-232516"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261022-103247"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -683,7 +729,7 @@ async function init(){
   }
   if(qs.get("ele") && !state.elections.length) state.elections=[pickElection([])];
   const sel = $("turno");
-  sel.innerHTML = state.elections.map(e=>`<option value="${esc(e.cd)}">${e.t}º turno${e.dt?" · "+esc(e.dt):""}</option>`).join("");
+  sel.innerHTML = state.elections.map(e=>`<option value="${esc(e.cd)}">${e.t}º turno</option>`).join("");
   sel.hidden = state.elections.length<2;
   state.ele = pickElection(state.elections);
   if(state.ele) sel.value = state.ele.cd;
@@ -775,8 +821,9 @@ async function load(){
     br.cands.forEach(c=>colorFor(c.n));
     state.br = br;
     await updateHistory(br);
-    renderStatus(); renderCands(); renderTotals(); renderChart(); renderPolls();
-    renderMap(); renderUfDetail(); renderTable(); renderCmp();
+    await carregaBase1();
+    renderStatus(); renderCands(); renderDuelo(); renderTotals(); renderChart(); renderPolls();
+    renderMap(); renderUfDetail(); renderTable(); renderCmp(); renderCmp1(); ajustaTurno();
     renderEnv(); // limpa um aviso de falha anterior
     state.lidoEm = Date.now();
   }catch(err){
@@ -816,6 +863,78 @@ function somaEstados(br, ufs){
   return { ...br, agregado:true, cands, e, v, pst, s:{...br.s, st:String(st), ts:String(ts)}, dt:ult.dt, ht:ult.ht, dg:ult.dt, hg:ult.ht, tf:"n",
     raw:{ dt:ult.dt, ht:ult.ht, s:{st:String(st)}, cdabr:"br", agregado:true } };
 }
+
+/* ---------- 2º turno: base do 1º turno ----------
+   No 2º turno o painel carrega uma vez o resultado final do 1º turno (Brasil + estados) e a curva do
+   1º turno gravada no GitHub, para comparar candidato a candidato e estado a estado. */
+const turno2 = () => state.ele?.t === "2";
+async function carregaBase1(){
+  if(!turno2()) return;
+  const e1 = state.elections.find(e=>e.t==="1"); if(!e1) return;
+  if(state.base1?.ele?.cd===e1.cd && state.base1.ok) return;
+  const res = await Promise.all(["br",...UFS].map(uf=>getTSE(dataUrl(uf,e1)).then(parse).catch(()=>null)));
+  if(!res[0]) return;
+  const ufs={}; UFS.forEach((u,i)=>{ if(res[i+1]) ufs[u]=res[i+1]; });
+  state.base1 = { ele:e1, br:res[0], ufs, ok:res.every(Boolean) };
+  try{ const r=await fetch(`${HIST_REMOTE}historico-${e1.cd}.json?t=${Math.floor(Date.now()/600e3)}`,{cache:"no-store"}); if(r.ok) state.hist1=await r.json(); }catch{}
+}
+// % de um candidato num resultado parseado (0 se não achar)
+const pcDe = (d,n) => d?.cands.find(c=>c.n===n)?.pv ?? 0;
+// ordem fixa dos dois do 2º turno: quem teve mais votos no 1º turno fica à esquerda
+function dupla(){
+  const cs = state.br?.cands||[]; if(cs.length<2) return null;
+  const b1 = state.base1?.br;
+  const [a,b] = b1 ? [...cs].slice(0,2).sort((x,y)=>pcDe(b1,y.n)-pcDe(b1,x.n)) : cs.slice(0,2);
+  return [a,b];
+}
+const nomeBonito = nm => shortName(nm).split(" ").map(w=>w[0]+w.slice(1).toLowerCase()).join(" ");
+const sinalPP = (x,dec=1) => (x>0?"+":x<0?"−":"")+Math.abs(x).toLocaleString("pt-BR",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+
+function renderDuelo(){
+  const el=$("duelo"), par=turno2()?dupla():null;
+  el.hidden=!par; $("candsLeg").textContent = turno2() ? "Tracejado = 50% dos válidos" : "Tracejado = 50% · traço escuro = média das pesquisas";
+  if(!par) return;
+  const [a,b]=par, ca=colorFor(a.n), cb=colorFor(b.n), tot=(a.pv+b.pv)||100;
+  const b1=state.base1?.br;
+  el.innerHTML=`<div class="duelo-nomes">
+      <div><b style="color:${ca}">${esc(nomeBonito(a.nm))}</b><span class="pc">${pf(a.pv)}</span><small>${nf.format(a.vap)} votos</small></div>
+      <div class="r"><b style="color:${cb}">${esc(nomeBonito(b.nm))}</b><span class="pc">${pf(b.pv)}</span><small>${nf.format(b.vap)} votos</small></div>
+    </div>
+    <div class="duelo-bar" role="img" aria-label="${esc(a.nm)} ${pf(a.pv)} contra ${esc(b.nm)} ${pf(b.pv)}"><i style="width:${a.pv/tot*100}%;background:${ca}"></i><i style="width:${b.pv/tot*100}%;background:${cb}"></i><span class="meio"></span></div>
+    ${b1?`<div class="duelo-1t">No 1º turno: ${esc(nomeBonito(a.nm))} ${pf(pcDe(b1,a.n))} · ${esc(nomeBonito(b.nm))} ${pf(pcDe(b1,b.n))} (sobre os votos de todos os candidatos)</div>`:""}`;
+}
+
+function renderCmp1(){
+  const sec=$("cmp1t"), par=turno2()?dupla():null, b1=state.base1;
+  sec.hidden = !(par && b1);
+  if(sec.hidden) return;
+  const [a,b]=par, ca=colorFor(a.n), cb=colorFor(b.n), started=state.br.cands.some(c=>c.vap>0);
+  const card=(c,cor)=>{ const p1=pcDe(b1.br,c.n), v1=b1.br.cands.find(x=>x.n===c.n)?.vap||0;
+    return `<div class="cmpcard"><div class="ano" style="color:${cor}">${esc(nomeBonito(c.nm))}</div>
+      <div class="cmpline"><span>1º turno</span><b>${pf(p1)}</b></div>
+      <div class="cmpline"><span>2º turno agora</span><b>${started?pf(c.pv):"—"}</b></div>
+      <div class="meta" style="font-size:.82rem;display:block">${started?`<b class="${c.pv>=p1?"up":"down"}">${sinalPP(c.pv-p1)} p.p.</b> · `:""}${nf.format(c.vap)} votos até agora, de ${nf.format(v1)} no 1º turno</div></div>`; };
+  const pc1=pctn(b1.br.e,"pc"), pc2=pctn(state.br.e,"pc");
+  $("c1Resumo").innerHTML = card(a,ca)+card(b,cb)+`<div class="cmpcard"><div class="ano">Comparecimento</div>
+      <div class="cmpline"><span>1º turno</span><b>${pf(pc1)}</b></div><div class="cmpline"><span>2º turno agora</span><b>${started?pf(pc2):"—"}</b></div>
+      <div class="meta" style="font-size:.82rem;display:block">${started?`<b>${sinalPP(pc2-pc1)} p.p.</b> · `:""}sobre os eleitores das seções apuradas</div></div>`;
+  document.querySelector('[data-c1n="a"]').textContent=nomeBonito(a.nm);
+  document.querySelector('[data-c1n="b"]').textContent=nomeBonito(b.nm);
+  $("c1Head").innerHTML=`<tr><th>UF</th><th class="r">Apurado</th><th class="r" style="color:${ca}">${esc(nomeBonito(a.nm))}<span class="sub">1º → 2º turno</span></th><th class="r" style="color:${cb}">${esc(nomeBonito(b.nm))}<span class="sub">1º → 2º turno</span></th><th class="r">Comparecimento<span class="sub">1º → 2º turno</span></th></tr>`;
+  const linhas = UFS.map(u=>{ const d2=state.ufs[u], d1=b1.ufs[u]; if(!d1) return null;
+    const tem=d2 && d2.cands.some(c=>c.vap>0);
+    const a1=pcDe(d1,a.n), b1p=pcDe(d1,b.n), a2=tem?pcDe(d2,a.n):null, b2=tem?pcDe(d2,b.n):null;
+    const p1=pctn(d1.e,"pc"), p2=tem?pctn(d2.e,"pc"):null;
+    return {u, tem, pst:d2?.pst||0, te:num(d1.e.te), a1, a2, b1:b1p, b2, p1, p2, da:tem?a2-a1:-999, db:tem?b2-b1p:-999}; }).filter(Boolean);
+  const k=state.c1sort||"te";
+  linhas.sort((x,y)=> k==="a"? y.da-x.da : k==="b"? y.db-x.db : y.te-x.te);
+  const cel=(v1,v2)=> v2==null ? `<td class="r num">${pf(v1)} → —</td>` : `<td class="r num">${pf(v1)} → <b>${pf(v2)}</b><span class="sub ${v2>=v1?"up":"down"}">${sinalPP(v2-v1)} p.p.</span></td>`;
+  $("c1Tab").innerHTML = linhas.map(r=>`<tr><td><b>${r.u==="zz"?"Exterior":r.u.toUpperCase()}</b></td><td class="r num">${r.tem?pf(r.pst):"—"}</td>${cel(r.a1,r.a2)}${cel(r.b1,r.b2)}${cel(r.p1,r.p2)}</tr>`).join("");
+}
+document.querySelector("#cmp1t .controls").addEventListener("click",e=>{ const b=e.target.closest("[data-c1]"); if(!b) return;
+  state.c1sort=b.dataset.c1; document.querySelectorAll("#cmp1t [data-c1]").forEach(x=>x.classList.toggle("on",x===b)); renderCmp1(); });
+document.getElementById("mapModos").addEventListener("click",e=>{ const b=e.target.closest("[data-mm]"); if(!b) return;
+  state.mapMode=b.dataset.mm; document.querySelectorAll("#mapModos [data-mm]").forEach(x=>x.classList.toggle("on",x===b)); renderMap(); });
 
 /* ---------- render ---------- */
 function renderStatus(){
@@ -973,6 +1092,14 @@ function renderChart(){
   if(maxY>=50) g+=`<line x1="${L}" x2="${W-R}" y1="${y(50)}" y2="${y(50)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
   g+=xTicks(x0,x1,byTime).map(v=>`<text x="${x(v)}" y="${H-10}" text-anchor="middle">${byTime?fmtHora(v):v+"%"}</text>`).join("");
   if(usePolls) top.forEach(c=>{ const pa=POLL_FINAL[c.n]; if(pa!=null) g+=`<line x1="${L}" x2="${W-R}" y1="${y(pa)}" y2="${y(pa)}" stroke="${colorFor(c.n)}" stroke-opacity=".55" stroke-dasharray="2 4" stroke-width="1.5"><title>Média das pesquisas: ${pf(pa)}</title></line>`; });
+  let sobre="";
+  if(turno2() && state.hist1?.length){
+    const dia = h[h.length-1].dt;
+    const xv1 = p => byTime ? ptTime({...p, dt:dia}) : p.pst;
+    (dupla()||[]).forEach(c=>{ const pts=state.hist1.filter(p=>p.cand?.[c.n] && xv1(p)>=x0 && xv1(p)<=x1).map(p=>x(xv1(p)).toFixed(1)+","+y(p.cand[c.n][1]).toFixed(1));
+      if(pts.length>1) sobre+=`<polyline fill="none" stroke="${colorFor(c.n)}" stroke-width="1.6" stroke-opacity=".7" stroke-dasharray="3 4" points="${pts.join(" ")}"><title>${esc(c.nm)} no 1º turno</title></polyline>`; });
+  }
+  g+=sobre;
   const labels=[];
   const lines = top.map(c=>{
     const pts=h.filter(pt=>pt.cand[c.n]).map(pt=>[x(xv(pt)),y(pt.cand[c.n][1]),pt]);
@@ -986,7 +1113,7 @@ function renderChart(){
   for(let i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<14) labels[i].y=labels[i-1].y+14;
   const lab=labels.map(l=>`<text x="${W-R+10}" y="${l.y+4}" style="fill:${colorFor(l.c.n)};font-weight:600">${esc(shortName(l.c.nm))} ${l.v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}%</text>`).join("");
   $("chart").innerHTML = `<div class="tablewrap"><svg class="chart" style="min-width:560px" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução do percentual de votos válidos durante a apuração">${g}${lines}${lab}</svg></div>
-    <div class="legend">${usePolls?"<span>Linhas pontilhadas = média das pesquisas</span>":""}<span>Eixo horizontal: ${byTime?"horário da totalização do TSE":"% das seções totalizadas"}</span></div>`;
+    <div class="legend">${usePolls?"<span>Linhas pontilhadas = média das pesquisas</span>":""}${turno2()&&state.hist1?.length?"<span>Tracejado fino = o mesmo candidato no 1º turno, no mesmo horário/% apurado</span>":""}<span>Eixo horizontal: ${byTime?"horário da totalização do TSE":"% das seções totalizadas"}</span></div>`;
   renderMargin(h,byTime,xv);
   renderBoletins();
 }
@@ -1092,12 +1219,16 @@ const R2022 = { ac:[29.26,62.50], al:[56.50,36.05], ap:[45.67,43.41], am:[49.58,
   pa:[52.22,40.27], pb:[64.21,29.62], pr:[35.99,55.26], pe:[65.27,29.91], pi:[74.25,19.90], rj:[40.68,51.09], rn:[62.98,31.02],
   rs:[42.28,48.89], ro:[28.98,64.36], rr:[23.05,69.57], sc:[29.54,62.21], sp:[40.89,47.71], se:[63.82,29.16], to:[50.40,44.00], zz:[47.17,41.61] };
 const BR2022 = { lula:[48.43,57259504], bolso:[43.20,51072345] };
+// 2º turno de 2022 (% dos votos válidos: [Lula, Bolsonaro]); fonte: TSE via Wikipedia
+const R2022_2T = {ac:[29.70,70.30], al:[58.68,41.32], am:[51.10,48.90], ap:[48.64,51.36], ba:[72.12,27.88], ce:[69.97,30.03], df:[41.19,58.81], es:[41.96,58.04], go:[41.29,58.71], ma:[71.14,28.86], mg:[50.20,49.80], ms:[40.51,59.49], mt:[34.92,65.08], pa:[54.75,45.25], pb:[66.62,33.38], pe:[66.93,33.07], pi:[76.86,23.14], pr:[37.60,62.40], rj:[43.47,56.53], rn:[65.10,34.90], ro:[29.34,70.66], rr:[23.92,76.08], rs:[43.65,56.35], sc:[30.73,69.27], se:[67.21,32.79], sp:[44.76,55.24], to:[51.36,48.64], zz:[51.28,48.72]};
+const BR2022_2T = { lula:[50.90,60345999], bolso:[49.10,58206354] };
+const R22 = () => turno2() ? R2022_2T : R2022;
 // curva da apuração de 2022: horário, Lula, Bolsonaro (null = a fonte não registrou)
 const CURVA2022 = [["17h00",41.9,48.8],["18h09",null,48.98],["20h02",45.6,45.6],["final",48.43,43.20]];
-const venc22 = uf => R2022[uf] ? (R2022[uf][0]>R2022[uf][1] ? "13" : "22") : null; // 22 = lado de Bolsonaro (PL)
+const venc22 = uf => R22()[uf] ? (R22()[uf][0]>R22()[uf][1] ? "13" : "22") : null; // 22 = lado de Bolsonaro (PL)
 
 function renderCmp(){
-  if(!state.br || state.ele?.t!=="1"){ $("cmp2022").hidden = true; return; }
+  if(!state.br){ $("cmp2022").hidden = true; return; }
   $("cmp2022").hidden = false;
   const corL = colorFor("13"), corB = colorFor("22");
   const linha = (nome,pc,cor) => `<div class="cmpline" style="--c:${cor}"><span><span class="sw"></span>${esc(nome)}</span><b>${pf(pc)}</b><div class="bar"><i style="width:${Math.min(100,pc)}%"></i></div></div>`;
@@ -1107,9 +1238,12 @@ function renderCmp(){
   const nomeCurto = c => shortName(c.nm).split(" ").map(w=>w[0]+w.slice(1).toLowerCase()).join(" ");
   const lidTxt = Object.entries(lid).sort((x,y)=>y[1]-x[1]).map(([n,q])=>`<b>${esc(nomeCurto(state.br.cands.find(c=>c.n===n)||{nm:n}))} ${q}</b>`).join(" · ");
   $("cmpResumo").innerHTML = `
-    <div class="cmpcard"><div class="ano">2022 · resultado final do 1º turno</div>
+    ${turno2() ? `<div class="cmpcard"><div class="ano">2022 · resultado final do 2º turno</div>
+      ${linha("Lula", BR2022_2T.lula[0], corL)}${linha("Jair Bolsonaro", BR2022_2T.bolso[0], corB)}
+      <div class="meta" style="font-size:.82rem;display:block">Estados vencidos: <b>Lula 13</b> + exterior · <b>Bolsonaro 14</b> (com o DF)</div></div>`
+    : `<div class="cmpcard"><div class="ano">2022 · resultado final do 1º turno</div>
       ${linha("Lula", BR2022.lula[0], corL)}${linha("Jair Bolsonaro", BR2022.bolso[0], corB)}
-      <div class="meta" style="font-size:.82rem;display:block">Estados vencidos: <b>Lula 14</b> + exterior · <b>Bolsonaro 13</b> (com o DF)</div></div>
+      <div class="meta" style="font-size:.82rem;display:block">Estados vencidos: <b>Lula 14</b> + exterior · <b>Bolsonaro 13</b> (com o DF)</div></div>`}
     <div class="cmpcard"><div class="ano">2026 · agora, ${pf(state.br.pst)} das seções</div>
       ${started ? linha(nomeCurto(a), a.pv, colorFor(a.n)) + linha(nomeCurto(b), b.pv, colorFor(b.n)) : `<div class="meta">Aguardando os primeiros votos.</div>`}
       ${started ? `<div class="meta" style="font-size:.82rem;display:block">Lidera em: ${lidTxt} (de ${comVotos} estados com votos)</div>` : ""}</div>`;
@@ -1118,7 +1252,23 @@ function renderCmp(){
     : mudou.length ? `<div class="mudou">${mudou.map(u=>{ const d=state.ufs[u]; return `<span title="${UF_NAMES[u]}: em 2022 venceu ${venc22(u)==="13"?"Lula":"Bolsonaro"}; agora lidera ${esc(d.cands[0].nm)}" style="box-shadow:inset 3px 0 0 ${colorFor(d.cands[0].n)}">${u==="zz"?"EXT":u.toUpperCase()}</span>`; }).join("")}</div>
        <div class="meta" style="font-size:.78rem;display:block">Onde quem lidera agora não é do mesmo lado de quem venceu lá em 2022 (Lula/PT ou o PL de Bolsonaro). Passe o mouse ou toque para ver o detalhe.</div>`
     : `<div class="meta">Nenhum até agora: em todos os estados com votos, lidera o mesmo lado que venceu em 2022.</div>`;
-  renderCurva2022(corL, corB);
+  const tit=document.querySelector("#cmp2022 h2"), sub=document.querySelector("#cmp2022 .panel-head .meta"), eb=$("curva2022").previousElementSibling, nota=$("curva2022").nextElementSibling;
+  if(turno2()){
+    tit.textContent="Comparativo com 2022"; sub.textContent="2º turno de 2022 (Lula × Jair Bolsonaro) ao lado do que a apuração de 2026 mostra agora.";
+    eb.textContent="Como foi a apuração do 2º turno de 2022";
+    $("curva2022").innerHTML=`<ul class="timeline22">
+      <li><b>17h00</b><span>Lula abre na frente, com menos de 1% apurado</span></li>
+      <li><b>17h07</b><span>Bolsonaro passa à frente, puxado pelas urnas do Sul, Sudeste e Centro-Oeste</span></li>
+      <li><b>18h44</b><span><b>Lula vira</b>, com 67,76% das urnas apuradas, e não perde mais a liderança</span></li>
+      <li><b>19h57</b><span>Com 98% apurado, o TSE confirma a vitória de Lula</span></li>
+      <li><b>final</b><span>Lula ${pf(BR2022_2T.lula[0])} (${nf.format(BR2022_2T.lula[1])} votos) × Bolsonaro ${pf(BR2022_2T.bolso[0])} (${nf.format(BR2022_2T.bolso[1])}), diferença de 2,1 milhões</span></li></ul>`;
+    nota.textContent="Horários registrados pela imprensa na noite de 30/10/2022.";
+  } else {
+    tit.textContent="Comparativo com 2022"; sub.textContent="1º turno de 2022 (Lula × Jair Bolsonaro) ao lado do que a apuração de 2026 mostra agora.";
+    eb.textContent="Como foi a apuração de 2022 (votos válidos)";
+    nota.textContent="Pontos registrados pela imprensa na noite de 2/10/2022. Às 20h02, com cerca de 70% das urnas, Lula virou com 45,6% e não perdeu mais a liderança; ali os dois estavam praticamente empatados.";
+    renderCurva2022(corL, corB);
+  }
 }
 function renderCurva2022(corL, corB){
   const box=$("curva2022"), W=Math.max(300, box.clientWidth||420), H=200, L=40, R=16, T=12, B=28, y0=40, y1=50;
@@ -1142,11 +1292,19 @@ function renderMap(){
   for(const uf of UFS){
     const d=state.ufs[uf], [cx,cy]=TILE[uf];
     let bg="var(--line)", on=false, sub="—";
-    if(d && d.cands[0] && d.cands[0].vap>0){ bg=mix(colorFor(d.cands[0].n),d.pst); on=true; sub=Math.round(d.pst)+"%"; }
+    if(d && d.cands[0] && d.cands[0].vap>0){
+      const par = state.mapMode==="var" && turno2() ? dupla() : null, d1 = state.base1?.ufs[uf];
+      if(par && d1){ // margem do 2º turno menos margem do 1º turno, no mesmo estado
+        const [a,b]=par, sw=(pcDe(d,a.n)-pcDe(d,b.n))-(pcDe(d1,a.n)-pcDe(d1,b.n));
+        bg=`color-mix(in srgb, ${colorFor(sw>=0?a.n:b.n)} ${Math.round(25+Math.min(1,Math.abs(sw)/10)*75)}%, var(--line))`; on=true; sub=sinalPP(sw);
+      } else { bg=mix(colorFor(d.cands[0].n),d.pst); on=true; sub=Math.round(d.pst)+"%"; }
+    }
     cells.push(`<button type="button" class="uf${on?" on":""}${uf===state.selUf?" sel":""}" style="grid-column:${cx+1};grid-row:${cy+1};background:${bg}"
       data-uf="${uf}" title="${UF_NAMES[uf]}">${uf==="zz"?"EXT":uf.toUpperCase()}<small>${sub}</small></button>`);
   }
   $("map").innerHTML=cells.join("");
+  const par = turno2()?dupla():null;
+  $("mapLeg").textContent = state.mapMode==="var" && par ? `Cor = para quem o estado andou em relação ao 1º turno (diferença entre os dois, em p.p.) · ${nomeBonito(par[0].nm)} × ${nomeBonito(par[1].nm)}` : "Cor = quem lidera · tom = quanto já foi apurado";
   // seletor em linha (aparece no celular)
   $("ufPick").innerHTML = ORDEM_UF.map(uf=>{ const d=state.ufs[uf], cor=d&&d.cands[0]&&d.cands[0].vap>0?colorFor(d.cands[0].n):"";
     return `<button type="button" class="ufchip${uf===state.selUf?" sel":""}" data-uf="${uf}" aria-pressed="${uf===state.selUf}" title="${UF_NAMES[uf]}"><i${cor?` style="background:${cor}"`:""}></i>${uf==="zz"?"EXT":uf.toUpperCase()}</button>`; }).join("");
@@ -1185,7 +1343,8 @@ function renderUfDetail(){
   $("ufdetail").innerHTML = nav(`${pf(d.pst)} das seções · ${nf.format(num(d.e.te))} eleitores`) +
     d.cands.slice(0,5).map(c=>`<div class="ufrow" style="--c:${colorFor(c.n)}"><span><span class="sw"></span>${esc(c.nm)}</span>
       <b class="num">${pf(c.pv)}</b><div class="bar"><i style="width:${Math.min(100,c.pv)}%"></i></div></div>`).join("") +
-    (R2022[uf] && state.ele?.t==="1" ? `<div class="meta num" style="font-size:.8rem">Em 2022 (1º turno): Lula ${pf(R2022[uf][0])} × Bolsonaro ${pf(R2022[uf][1])} · venceu ${venc22(uf)==="13"?"Lula":"Bolsonaro"}</div>` : "");
+    (turno2() && state.base1?.ufs[uf] && dupla() ? `<div class="meta num" style="font-size:.8rem;display:block">No 1º turno de 2026: ${dupla().map(c=>`${esc(nomeBonito(c.nm))} ${pf(pcDe(state.base1.ufs[uf],c.n))}`).join(" × ")}</div>` : "") +
+    (R22()[uf] ? `<div class="meta num" style="font-size:.8rem;display:block">Em 2022 (${turno2()?"2º":"1º"} turno): Lula ${pf(R22()[uf][0])} × Bolsonaro ${pf(R22()[uf][1])} · venceu ${venc22(uf)==="13"?"Lula":"Bolsonaro"}</div>` : "");
 }
 
 function ufRows(){
@@ -1246,8 +1405,8 @@ function goElection(){
       if(abr && (abr.cp||[]).some(c=>c.cd===GO.cargos.gov)) out.push({cd:e.cd,t:e.t,dt:pl.dt,ciclo:pl.c,nm:e.nm});
     }
   }
-  const t = state.ele?.t || "1";
-  return out.find(e=>e.t===t) || out[0] || null;
+  // as abas de estado mostram sempre o 1º turno (governadores de GO, MG e SP foram decididos no 1º turno)
+  return out.find(e=>e.t==="1") || out[0] || null;
 }
 const goUrl = (ele,cargo) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/dados/${GO.uf}/${GO.uf}-c${pad(cargo,4)}-e${pad(ele.cd,6)}-u.json`;
 const goFoto = (ele,sq) => `${envCfg().base}${envCfg().amb}/${ele.ciclo}/${ele.cd}/fotos/${GO.uf}/${sq}.jpeg`;
@@ -1515,7 +1674,7 @@ function setView(v){
   $("viewBR").hidden = estado; $("viewGO").hidden = !estado;
   $("tabBR").classList.toggle("on",!estado); $("tabBR").setAttribute("aria-selected",!estado);
   document.querySelectorAll(".tabUF").forEach(b=>{ const on=b.dataset.uf===v; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
-  $("pageTitle").textContent = estado ? `Apuração ${emUF(v)}` : "Apuração para Presidente da República";
+  $("pageTitle").textContent = estado ? `Apuração ${emUF(v)} · 1º turno` : "Apuração para Presidente da República" + (turno2()?" · 2º turno":"");
   $("turno").hidden = estado || state.elections.length<2;
   try{ history.replaceState(null,"",estado?"#"+(v==="go"?"goias":v):location.pathname+location.search); }catch{}
   if(estado) loadGO(); else if(state.br){ renderChart(); renderPolls(); renderCmp(); }
@@ -1523,6 +1682,15 @@ function setView(v){
 $("tabBR").onclick=()=>setView("br");
 document.querySelectorAll(".tabUF").forEach(b=>b.onclick=()=>setView(b.dataset.uf));
 
+// partes que só existem no 1º turno somem no 2º, e vice-versa
+function ajustaTurno(){
+  const t2=turno2();
+  const pesq=$("pollChart").closest("section"); if(pesq) pesq.hidden=t2;
+  $("mapModos").hidden=!(t2 && state.base1);
+  if(!t2 || !state.base1) state.mapMode="lider";
+  const eb=document.querySelector(".topline .eyebrow"); if(eb) eb.textContent = t2 ? "Eleições Gerais 2026 · 2º turno · dados do TSE" : "Eleições Gerais 2026 · dados do TSE";
+  if(state.view==="br") $("pageTitle").textContent = "Apuração para Presidente da República" + (t2?" · 2º turno":"");
+}
 // redesenha os gráficos quando a largura muda (girar o celular, redimensionar a janela, trocar de aba)
 let tRedesenho; addEventListener("resize",()=>{ clearTimeout(tRedesenho); tRedesenho=setTimeout(()=>{ if(state.br && state.view==="br"){ renderChart(); renderPolls(); renderCmp(); } },200); });
 

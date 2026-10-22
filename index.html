@@ -45,7 +45,7 @@ header{display:grid;gap:4px}
 .tabs .seg:first-child{border-radius:6px 0 0 6px}
 .tabs .seg:last-child{border-radius:0 6px 6px 0}
 .grid.solo{grid-template-columns:minmax(0,1fr)}
-.acts{display:flex;gap:8px;align-items:center}
+.acts{display:flex;gap:8px;align-items:center;margin-left:auto}
 button.icon{min-width:38px;padding-inline:10px;font-size:1rem;line-height:1}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 button,select,input{font:500 .85rem var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 11px}
@@ -292,13 +292,6 @@ footer a{color:var(--accent)}
   </header>
 
   <nav class="toolbar" aria-label="Navegação do painel">
-    <div class="tabs" role="tablist" aria-label="Disputa">
-      <button type="button" role="tab" id="tabBR" class="seg on" aria-selected="true"><span class="l">Presidente</span><span class="s">Pres.</span></button>
-      <button type="button" role="tab" class="seg tabUF" data-uf="go" aria-selected="false"><span class="l">Goiás</span><span class="s">GO</span></button>
-      <button type="button" role="tab" class="seg tabUF" data-uf="mg" aria-selected="false"><span class="l">Minas</span><span class="s">MG</span></button>
-      <button type="button" role="tab" class="seg tabUF" data-uf="df" aria-selected="false"><span class="l">DF</span><span class="s">DF</span></button>
-      <button type="button" role="tab" class="seg tabUF" data-uf="sp" aria-selected="false"><span class="l">São Paulo</span><span class="s">SP</span></button>
-    </div>
     <div class="acts">
       <select id="turno" aria-label="Turno"></select>
       <button id="pause" type="button">Pausar</button>
@@ -458,47 +451,6 @@ footer a{color:var(--accent)}
   </section>
   </div>
 
-  <div id="viewGO" class="view" hidden>
-    <div id="goNotice" class="notice" hidden></div>
-    <section class="status" aria-live="polite">
-      <div class="status-top">
-        <div>
-          <div class="eyebrow" id="ufSecTitulo">Seções totalizadas em Goiás</div>
-          <div class="apurado num" id="goPst">—<small id="goPstAbs"></small></div>
-        </div>
-        <div class="lead num" id="goLead" hidden></div>
-        <div class="meta num"><span id="goUpdated">Aguardando dados</span><span id="goNext"></span></div>
-      </div>
-      <div class="progress"><i id="goBar" style="width:0%"></i></div>
-    </section>
-
-    <section class="panel" id="goBusca">
-      <div class="panel-head"><h2>Buscar candidato</h2><span class="eyebrow" id="ufBuscaSub">Senado e deputados de Goiás</span></div>
-      <input type="search" id="goQ" class="search big" placeholder="Nome, número ou partido" aria-label="Buscar senador ou deputado" autocomplete="off">
-      <div class="chips" role="group" aria-label="Filtrar por cargo">
-        <button type="button" class="chip on" data-c="todos">Todos</button>
-        <button type="button" class="chip" data-c="sen">Senado</button>
-        <button type="button" class="chip" data-c="df">Dep. Federal</button>
-        <button type="button" class="chip" data-c="de" id="chipDE">Dep. Estadual</button>
-      </div>
-      <div id="goResults" class="results"></div>
-    </section>
-
-    <div class="grid">
-      <section class="panel" id="goGov">
-        <div class="panel-head"><h2>Governador</h2><span class="eyebrow">Tracejado = 50% dos válidos</span></div>
-        <div class="cands" id="goGovList"></div>
-      </section>
-      <section class="panel" id="goSen">
-        <div class="panel-head"><h2>Senado</h2><span class="eyebrow" id="goSenVagas">2 vagas · os 2 mais votados</span></div>
-        <div class="cands" id="goSenList"></div>
-      </section>
-    </div>
-
-    <section class="panel" id="goDF"></section>
-    <section class="panel" id="goDE"></section>
-  </div>
-
   <footer>
     Fonte: arquivos públicos de divulgação de resultados do TSE (<a href="https://resultados.tse.jus.br" target="_blank" rel="noopener">resultados.tse.jus.br</a>).
     O painel atualiza sozinho a cada 30 segundos. Percentuais calculados sobre votos válidos, como faz o TSE.
@@ -519,7 +471,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261022-103738"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261022-105045"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1544,8 +1496,8 @@ function renderBusca(){
         </div>`;
       }).join("");
 }
-$("goQ").addEventListener("input",e=>{ state.go.q=e.target.value; renderBusca(); });
-document.querySelector("#goBusca .chips").addEventListener("click",e=>{
+if($("goQ")) $("goQ").addEventListener("input",e=>{ state.go.q=e.target.value; renderBusca(); });
+document.querySelector("#goBusca .chips")?.addEventListener("click",e=>{
   const b=e.target.closest(".chip"); if(!b) return;
   state.go.cargo=b.dataset.c;
   document.querySelectorAll("#goBusca .chip").forEach(x=>x.classList.toggle("on",x===b));
@@ -1683,21 +1635,18 @@ function trocaEstado(uf){
   $("goGov").parentElement.classList.toggle("solo", !tem("sen"));
   state.go.cargo="todos"; document.querySelectorAll("#goBusca .chip").forEach(x=>x.classList.toggle("on",x.dataset.c==="todos"));
 }
-const HASH_UF = {goias:"go", go:"go", minas:"mg", mg:"mg", df:"df", sp:"sp", saopaulo:"sp"};
+const HASH_UF = {};
 function setView(v){
   state.view=v;
   const estado = v!=="br";
   if(estado) trocaEstado(v);
   $("viewBR").hidden = estado; $("viewGO").hidden = !estado;
-  $("tabBR").classList.toggle("on",!estado); $("tabBR").setAttribute("aria-selected",!estado);
-  document.querySelectorAll(".tabUF").forEach(b=>{ const on=b.dataset.uf===v; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
   $("pageTitle").textContent = estado ? `Apuração ${emUF(v)} · 1º turno` : "Apuração para Presidente da República" + (turno2()?" · 2º turno":"");
   $("turno").hidden = estado || state.elections.length<2;
   try{ history.replaceState(null,"",estado?"#"+(v==="go"?"goias":v):location.pathname+location.search); }catch{}
   if(estado) loadGO(); else if(state.br){ renderChart(); renderPolls(); renderCmp(); }
 }
-$("tabBR").onclick=()=>setView("br");
-document.querySelectorAll(".tabUF").forEach(b=>b.onclick=()=>setView(b.dataset.uf));
+// painel só de Presidente: as abas de estado foram retiradas
 
 // partes que só existem no 1º turno somem no 2º, e vice-versa
 function ajustaTurno(){
@@ -1744,7 +1693,7 @@ function tick(){
   const t = state.paused ? "Atualização automática pausada"
     : (loading||loadingGO) ? "Lendo o TSE…"
     : lido==null ? "Aguardando a primeira leitura" : `Lido do TSE há ${lido}s · automático`;
-  $("next").textContent = t; $("goNext").textContent = t;
+  $("next").textContent = t;
 }
 state.nextAt = Date.now() + REFRESH_S*1000;
 function passo(){

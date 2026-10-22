@@ -15,7 +15,7 @@ const CODIGO_VALIDO = /^[a-z0-9-]{8,40}$/;
 // arquivo de Presidente/Brasil e dos governadores dos estados com aba, e manda para todos os painéis.
 // Mensagem de rede acorda a página mesmo quando o navegador desacelera os relógios da aba.
 const TSE = "https://resultados.tse.jus.br/oficial/";
-const UFS_GOV = ["go", "mg", "df", "sp"];
+const UFS_GOV = []; // painel só de Presidente
 const CHECA_MS = 10000;
 const pad = (v, n) => String(v).padStart(n, "0");
 async function lerJWS(url) {

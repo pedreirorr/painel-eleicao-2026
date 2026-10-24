@@ -11,7 +11,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 from apuracao_servidor import BASE, get_json, get_resultado, inteiro, UFS, log
 import modelo
 
-PESQUISAS_A = 0.5103   # média das pesquisas pós-1º turno (última de cada um dos 17 institutos, até 22/10): parcela de A nos válidos
+# Ponto de partida antes da apuração: parcela de A nos válidos pela média das pesquisas de 2º turno
+# (última de cada instituto, até 22/10), com peso 1/(erro² + 0,5²), onde erro = quanto o instituto errou
+# a parcela de Flávio entre os dois no 1º turno (resultado real 51,01%). Os 13 institutos com pesquisa
+# nas duas semanas finais do 1º turno: Futura +0,19, Vox −0,52, Veritá −0,74, Palver +1,21, PoderData −1,62,
+# Ideia −1,66, Datafolha −2,23, Quaest −2,30, AtlasIntel −2,62, Real Time −3,45, MDA −4,16, Nexus −4,18, Indexa −4,44.
+# Média simples dos 17 institutos: 51,03%; ponderada pelo acerto: 50,71%.
+PESQUISAS_A = 0.5071
 
 
 class Coletor:

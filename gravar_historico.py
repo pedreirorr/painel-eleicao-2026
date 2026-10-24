@@ -89,7 +89,7 @@ class Previsor(threading.Thread):
                 with LOCK:
                     arqp = os.path.join(DADOS_DIR, f"previsao-{self.cd}.json")
                     hp = json.load(open(arqp, encoding="utf-8")) if os.path.exists(arqp) else []
-                    hp.append({k: prev[k] for k in ("calculado", "ht_tse", "pst_tse", "pA", "lo90", "hi90", "chanceA", "t", "municipios_apurados", "apurado_eleitorado")})
+                    hp.append({k: prev.get(k) for k in ("calculado", "ht_tse", "pst_tse", "pA", "lo90", "hi90", "chanceA", "t", "municipios_apurados", "apurado_eleitorado", "A", "B", "votosA", "votosB")})
                     with open(arqp, "w", encoding="utf-8") as f:
                         json.dump(hp, f, separators=(",", ":"))
                     self.novos = True

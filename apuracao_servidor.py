@@ -46,15 +46,20 @@ def ponto_nacional(ciclo, cd):
     nacional (o TSE às vezes atrasa o br), usa a soma, com as mesmas regras de % do TSE."""
     from concurrent.futures import ThreadPoolExecutor
     url = lambda uf: f"{BASE}{ciclo}/{cd}/dados/{uf}/{uf}-c0001-e{int(cd):06d}-u.json"
-    br = get_resultado(url("br"))
-    novo = ponto(br)
+    try:
+        br = get_resultado(url("br"))
+        novo = ponto(br)
+    except Exception:  # arquivo nacional fora do ar: segue pela soma dos estados
+        br, novo = None, {"st": -1}
     try:
         with ThreadPoolExecutor(8) as ex:
             ufs = list(ex.map(lambda u: get_resultado(url(u)), UFS))
     except Exception:
+        if br is None:
+            raise
         return novo, br
     st = sum(inteiro(d["s"]["st"]) for d in ufs)
-    if st <= novo["st"]:
+    if br is not None and st <= novo["st"]:
         return novo, br
     votos = {}
     for d in ufs:
@@ -76,7 +81,7 @@ def ponto_nacional(ciclo, cd):
     novo = {"dt": ult.get("dt"), "ht": ult.get("ht"), "pst": st / ts * 100 if ts else 0.0, "st": st, "vv": vv,
             "c": sum(inteiro(d["e"].get("c")) for d in ufs), "lido": datetime.datetime.now().isoformat(timespec="seconds"),
             "cand": cand, "somado_dos_estados": True}
-    return novo, br
+    return novo, br if br is not None else {"tf": "s" if ts and st >= ts else "n"}
 
 
 def descobrir_eleicao():

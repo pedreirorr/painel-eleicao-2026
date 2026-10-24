@@ -71,7 +71,7 @@ class Coletor:
                 if st > 0 and self.status.get(cd) != chave:
                     mudou.append((uf, cd)); self.status[cd] = chave
         if mudou:
-            with ThreadPoolExecutor(32) as ex:
+            with ThreadPoolExecutor(48) as ex:
                 for r in ex.map(lambda it: self._seguro(it), mudou):
                     if r: self.atual[r[0]] = r[1]
         p = modelo.projetar(self.base, self.atual, self.t0, sims=1500)

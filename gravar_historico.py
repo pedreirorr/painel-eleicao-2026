@@ -10,7 +10,7 @@ Variáveis de ambiente:
 Encerra antes se a totalização terminar. Sai com código 3 quando o tempo acaba e a
 apuração ainda não terminou, para o workflow disparar a próxima rodada.
 """
-import json, os, subprocess, sys, time, datetime
+import json, os, subprocess, sys, time, datetime, threading
 from apuracao_servidor import BASE, descobrir_eleicao, get_resultado, ponto, ponto_nacional, log
 
 DADOS_DIR = os.environ.get("DADOS_DIR", "dados")
@@ -57,15 +57,59 @@ def envia_previsao(p):
         r.read()
 
 
+# a previsão roda numa linha de execução à parte: baixar milhares de municípios leva minutos no começo
+# da apuração e não pode atrasar a gravação da curva. LOCK protege os arquivos durante o git add/commit.
+LOCK = threading.Lock()
+
+
+class Previsor(threading.Thread):
+    def __init__(self, ciclo, cd):
+        super().__init__(daemon=True)
+        self.ciclo, self.cd = ciclo, cd
+        self.ponto = {"pst": 0.0, "ht": "", "dt": ""}   # último ponto do TSE, atualizado pela linha principal
+        self.novos = False                               # há previsão nova gravada para enviar ao GitHub
+        self.parar = False
+
+    def run(self):
+        coletor = None
+        while not self.parar:
+            inicio = time.time()
+            try:
+                if coletor is None:
+                    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "previsao"))
+                    from coletor import Coletor
+                    coletor = Coletor(self.ciclo, self.cd, primeiro_turno_de(self.cd))
+                prev = coletor.ciclo_()
+                pt = dict(self.ponto)
+                prev.update({"pst_tse": pt["pst"], "ht_tse": pt["ht"], "dt_tse": pt["dt"]})
+                try:
+                    envia_previsao(prev)
+                except Exception as err:
+                    log("Falha ao enviar a previsão ao contador:", err)
+                with LOCK:
+                    arqp = os.path.join(DADOS_DIR, f"previsao-{self.cd}.json")
+                    hp = json.load(open(arqp, encoding="utf-8")) if os.path.exists(arqp) else []
+                    hp.append({k: prev[k] for k in ("calculado", "ht_tse", "pst_tse", "pA", "lo90", "hi90", "chanceA", "t", "municipios_apurados", "apurado_eleitorado")})
+                    with open(arqp, "w", encoding="utf-8") as f:
+                        json.dump(hp, f, separators=(",", ":"))
+                    self.novos = True
+                log(f"Previsão: A {prev['pA']*100:.2f}% ({prev['lo90']*100:.1f}–{prev['hi90']*100:.1f}), chance {prev['chanceA']*100:.0f}%, "
+                    f"{prev['municipios_apurados']} municípios ({prev['atualizados_no_ciclo']} novos, {time.time()-inicio:.0f} s)")
+            except Exception as err:
+                log("Falha na previsão:", err)
+            time.sleep(max(5, PREVISAO_INTERVALO - (time.time() - inicio)))
+
+
 def git(*args):
     return subprocess.run(["git", "-C", DADOS_DIR, *args], capture_output=True, text=True)
 
 
 def publicar(msg):
-    git("add", "-A")
-    if git("diff", "--cached", "--quiet").returncode == 0:
-        return
-    git("commit", "-q", "-m", msg)
+    with LOCK:
+        git("add", "-A")
+        if git("diff", "--cached", "--quiet").returncode == 0:
+            return
+        git("commit", "-q", "-m", msg)
     for _ in range(3):
         if git("push", "-q", "origin", "HEAD:dados").returncode == 0:
             return
@@ -76,7 +120,7 @@ def publicar(msg):
 def main():
     fim = time.time() + HORAS * 3600
     ele, ultimo_push, pendente, final = None, 0, False, False
-    coletor, ultima_prev = None, 0
+    previsor = None
     while time.time() < fim:
         try:
             if ele is None:
@@ -95,30 +139,21 @@ def main():
                         json.dump(hist, f, ensure_ascii=False, separators=(",", ":"))
                     pendente = True
                     log(f"Novo ponto: {novo['pst']:.2f}% das seções (totalização {novo['ht']}) · {len(hist)} pontos")
-                # previsão (só no 2º turno): roda num bloco à parte para nunca atrapalhar o histórico
-                if ele[3] == "2" and time.time() - ultima_prev >= PREVISAO_INTERVALO:
-                    ultima_prev = time.time()
-                    try:
-                        if coletor is None:
-                            sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "previsao"))
-                            from coletor import Coletor
-                            coletor = Coletor(ciclo, cd, primeiro_turno_de(cd))
-                        prev = coletor.ciclo_()
-                        prev.update({"pst_tse": novo["pst"], "ht_tse": novo["ht"], "dt_tse": novo["dt"]})
-                        envia_previsao(prev)
-                        arqp = os.path.join(DADOS_DIR, f"previsao-{cd}.json")
-                        hp = json.load(open(arqp, encoding="utf-8")) if os.path.exists(arqp) else []
-                        hp.append({k: prev[k] for k in ("calculado", "ht_tse", "pst_tse", "pA", "lo90", "hi90", "chanceA", "t", "municipios_apurados", "apurado_eleitorado")})
-                        json.dump(hp, open(arqp, "w", encoding="utf-8"), separators=(",", ":"))
-                        pendente = True
-                        log(f"Previsão: A {prev['pA']*100:.2f}% ({prev['lo90']*100:.1f}–{prev['hi90']*100:.1f}), chance {prev['chanceA']*100:.0f}%, {prev['municipios_apurados']} municípios")
-                    except Exception as err:
-                        log("Falha na previsão:", err)
+                # previsão (só no 2º turno), em paralelo
+                if ele[3] == "2":
+                    if previsor is None:
+                        previsor = Previsor(ciclo, cd)
+                        previsor.start()
+                    previsor.ponto = {"pst": novo["pst"], "ht": novo["ht"], "dt": novo["dt"]}
+                    if previsor.novos:
+                        previsor.novos, pendente = False, True
                 final = d.get("tf") == "s" and novo["pst"] >= 100
                 if pendente and (time.time() - ultimo_push >= PUSH_MIN or final):
                     publicar(f"Histórico {cd}: {novo['pst']:.2f}% das seções às {novo['ht']}")
                     ultimo_push, pendente = time.time(), False
                 if final:
+                    if previsor:
+                        previsor.parar = True
                     log("Totalização concluída; encerrando.")
                     return 0
         except Exception as err:

@@ -12,8 +12,10 @@ on:
         description: "Só para teste: código da eleição (vazio = escolhe pela data)"
         default: ""
   schedule:
-    # 16h40 de Brasília (19h40 UTC) nos dias de votação: 1º turno 04/10 e 2º turno 25/10
-    - cron: "40 19 4,25 10 *"
+    # 2º turno, 25/10: 16h10, 16h40 e 17h10 de Brasília (o agendamento do GitHub às vezes atrasa ou pula
+    # um horário; se já houver uma rodada gravando, as outras só esperam na fila e encerram ao ver o fim)
+    - cron: "10,40 19 25 10 *"
+    - cron: "10 20 25 10 *"
 
 permissions:
   contents: write

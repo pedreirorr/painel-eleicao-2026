@@ -573,7 +573,7 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
       <summary>Como a previsão funciona</summary>
       <p>As urnas não chegam de forma equilibrada: algumas regiões são apuradas antes de outras. Por isso o placar parcial engana, e a previsão olha <b>município por município</b>.</p>
       <p>Para cada município já apurado, compara o 2º turno com o 1º turno no mesmo lugar e estima para onde foram os votos dos candidatos eliminados, com um ajuste por estado. Aplica isso aos municípios que ainda faltam, usando o resultado deles no 1º turno, e estima quantos votos ainda vão entrar pelo eleitorado e pelo comparecimento. A faixa e a chance vêm de milhares de simulações, incluindo um erro comum a todo o país.</p>
-      <p>Antes da apuração, a previsão parte da média das pesquisas de 2º turno (a mais recente de cada instituto). <b>É uma estimativa, não o resultado oficial</b>, que é só o do TSE.</p>
+      <p>Antes da apuração, a previsão parte da média das pesquisas de 2º turno (a mais recente de cada instituto), com mais peso para os institutos que mais acertaram o 1º turno (Futura, Vox, Veritá e Palver erraram menos de 1,3 ponto). <b>É uma estimativa, não o resultado oficial</b>, que é só o do TSE.</p>
     </details>
   </section>
 
@@ -730,7 +730,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261022-115318"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261024-102946"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -2045,7 +2045,7 @@ function renderPrev(){
   const pA=p.pA*100, pB=100-pA, lo=p.lo90*100, hi=p.hi90*100;
   const antes = !(p.municipios_apurados>0);
   const hora = p.calculado ? new Date(p.calculado).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}) : "";
-  $("prevSub").textContent = antes ? "Antes da apuração: ponto de partida pela média das pesquisas de 2º turno."
+  $("prevSub").textContent = antes ? "Antes da apuração: ponto de partida pela média das pesquisas de 2º turno, com mais peso para os institutos que mais acertaram o 1º turno."
     : `Atualizada às ${hora}, com ${pf((p.pst_tse??0))} das seções apuradas e ${nf.format(p.municipios_apurados)} municípios com votos.`;
   const fmt1 = x => x.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
   const mi = v => (v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi";
@@ -2153,7 +2153,7 @@ function renderDashPrev(a,b,ca,cb,final){
   box.innerHTML = `<h3>Previsão do resultado final<span class="sp"></span><span class="dpill">modelo</span></h3>${gauge}
     <div class="drow3 num"><span>Projeção<b style="color:${corTxt(cF)}">${fmt1(pF)}%</b></span><span>Faixa 90%<b>${fmt1(fLo)}–${fmt1(fHi)}</b></span><span>${esc(primeiroNome(outro))}<b>${MOSTRAR_CHANCE?Math.round((1-chance)*100)+"%":fmt1(100-pF)+"%"}</b></span></div>
     <div class="dbandw"><div class="dband" role="img" aria-label="Faixa provável para ${esc(A.nm)}: ${fmt1(lo)}% a ${fmt1(hi)}%"><i style="width:${lo}%;background:${cA}"></i><i class="fx" style="width:${hi-lo}%;background-color:color-mix(in srgb,${cA} 50%,${cB})"></i><i style="flex:1;background:${cB}"></i></div></div>
-    <div class="dprevsub">${antes?"Antes da apuração: média das pesquisas de 2º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
+    <div class="dprevsub">${antes?"Antes da apuração: pesquisas, com mais peso a quem acertou o 1º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
   m.hidden=false;
   m.innerHTML = `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
   // votos dos eliminados

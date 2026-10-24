@@ -322,12 +322,14 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
 .ddifm b{color:var(--ink)}
 .dc{display:flex;align-items:center;gap:16px;min-width:0}
 .dc.r{flex-direction:row-reverse;text-align:right}
+.dc.fav.lead{--k:1.16}.dc.fav.lead .dfig img{box-shadow:0 0 0 3px var(--c),0 0 22px color-mix(in srgb,var(--c) 55%,transparent)}
+.dc.sombra{--k:.84}.dc.sombra .dfig img{filter:grayscale(.55);opacity:.8}
 .dfig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:96px}
 .dfoto{width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:50% 20%;background:var(--line);box-shadow:0 0 0 3px var(--c),0 0 0 6px color-mix(in srgb,var(--c) 22%,transparent);display:grid;place-items:center;font:800 20px var(--body);color:var(--ink)}
 .dfig figcaption{font:600 11.5px/1.25 var(--body);color:var(--muted);text-align:center;max-width:96px;overflow-wrap:anywhere}
 .dfig figcaption small{display:block;font-weight:500;color:var(--muted2)}
 .dnums{min-width:0}
-.dpc{font:800 clamp(28px,calc((100cqi - 400px)/7.4),58px)/1 var(--body);letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dpc{font:800 calc(var(--k,1)*clamp(28px,calc((100cqi - 400px)/7.4),58px))/1 var(--body);transition:font-size .6s;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dvt{font-size:12px;color:var(--muted2);margin-top:4px;white-space:nowrap}
 .dmid{text-align:center;min-width:0}
 .dmid b{display:block;font:700 clamp(16px,1.6vw,22px)/1.2 var(--body);white-space:nowrap}
@@ -366,7 +368,7 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
 .dtile{background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:14px;padding:10px 12px;min-width:0}
 .dtile small{display:block;font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dtile b{font:700 20px var(--body);white-space:nowrap}
-.dtile em{font-style:normal;font-size:11px;font-weight:600;margin-left:4px;white-space:nowrap}
+.dtile em{display:inline-block;font-style:normal;font-size:11px;font-weight:600;margin-left:4px;white-space:nowrap}
 .dtile .sub{display:block;font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dup{color:#4ade80}.ddn{color:#f87171}
 .dseg{display:inline-flex;background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:10px;padding:3px;gap:2px}
@@ -403,7 +405,8 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
   .dfig{width:64px;gap:4px}
   .dfoto{width:48px;height:48px;font-size:15px;box-shadow:0 0 0 2px var(--c),0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent)}
   .dfig figcaption{font-size:10.5px;max-width:64px}
-  .dpc{font-size:clamp(24px,calc((100cqi - 150px)/7.6),52px)}
+  .dpc{font-size:calc(var(--k,1)*clamp(24px,calc((100cqi - 150px)/7.6),52px))}
+  .dc.fav.lead{--k:1}.dc.sombra{--k:.78}
 }
 /* computador/TV com tela grande: tudo numa tela, sem rolagem */
 @media (min-width:1181px) and (min-height:701px){
@@ -730,7 +733,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261024-220842"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261024-221808"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -2026,6 +2029,7 @@ function avisoTSE(tse){
 /* ---------- previsão do 2º turno (calculada no gravador do GitHub e repassada pelo contador) ----------
    Mostra a chance de vitória só se MOSTRAR_CHANCE for verdadeiro (decidido pelo teste do modelo). */
 const MOSTRAR_CHANCE = true;
+const FAV = "22"; // candidato em destaque no painel (Flávio Bolsonaro)
 const PREV_URL = "https://painel-online.pedro0-75c.workers.dev/previsao";
 state.prevHist = [];
 function recebePrev(p){
@@ -2120,15 +2124,17 @@ function renderDash(){
   $("dBar").style.width = $("dBarM").style.width = Math.min(100,br.pst)+"%";
   $("dSub").textContent = started ? `TSE · ${final?"totalização concluída":"totalização às "+(br.ht||br.hg||"").slice(0,5)}` : "Dados oficiais do TSE";
   // placar
-  const lado = (c,cor,r) => `<div class="dc${r?" r":""}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
+  const flaLidera = started && a.vap!==b.vap && (a.vap>b.vap?a:b).n===FAV;
+  const lado = (c,cor,r) => `<div class="dc${r?" r":""}${c.n===FAV?" fav":""}${flaLidera?(c.n===FAV?" lead":" sombra"):""}" style="--c:${cor}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
       <div class="dnums"><div class="dpc" style="color:${corTxt(cor)}">${started?pf(c.pv):"—"}</div><div class="dvt">${nf.format(c.vap)} votos</div></div></div>`;
-  const dif = Math.abs(a.vap-b.vap), lider = a.vap>=b.vap ? a : b;
+  const dif = Math.abs(a.vap-b.vap), lider = a.vap>=b.vap ? a : b, fv=[a,b].find(c=>c.n===FAV);
+  const quem = !dif ? "empate" : fv ? esc(primeiroNome(fv))+(lider===fv?" à frente":" atrás") : esc(primeiroNome(lider))+" à frente";
   const s1 = parcelaA(b1?.br,a,b);
   $("dVs").innerHTML = `<div class="dvs num">${lado(a,ca,false)}
-      <div class="dmid">${started?`<span class="dmono">diferença</span><b>${miOu(dif)}</b><small>${dif?esc(primeiroNome(lider))+" à frente":"empate"}</small>`:`<span class="dmono">apuração</span><b>às 17h</b>`}</div>
+      <div class="dmid">${started?`<span class="dmono">diferença</span><b>${miOu(dif)}</b><small>${quem}</small>`:`<span class="dmono">apuração</span><b>às 17h</b>`}</div>
       ${lado(b,cb,true)}</div>
     <div class="dbar" role="img" aria-label="${esc(nomeCurto(a))} ${pf(a.pv)} contra ${esc(nomeCurto(b))} ${pf(b.pv)}"><i style="width:${started?a.pv/(a.pv+b.pv)*100:50}%;background:linear-gradient(90deg,color-mix(in srgb,${ca} 80%,#000),${ca})"></i><i style="flex:1;background:linear-gradient(90deg,${cb},color-mix(in srgb,${cb} 80%,#000))"></i></div>
-    <div class="ddifm">${started?`Diferença: <b>${miOu(dif)}</b> · ${dif?esc(primeiroNome(lider))+" à frente":"empate"}`:"A apuração começa às 17h"}</div>
+    <div class="ddifm">${started?`Diferença: <b>${miOu(dif)}</b> · ${quem}`:"A apuração começa às 17h"}</div>
     <div class="dfoot"><span>${s1!=null?`No 1º turno, entre os dois: <b>${esc(nomeCurto(a))} ${pf(s1)}</b> × ${esc(nomeCurto(b))} ${pf(100-s1)}`:""}</span><span>Traço branco = 50%</span></div>`;
   renderDashPrev(a,b,ca,cb,final);
   renderDashTiles(b1);
@@ -2163,21 +2169,22 @@ function renderDashPrev(a,b,ca,cb,final){
   }
   const cand = n => n===a.n?a:b;
   const A=cand(p.A), B=cand(p.B), cA=colorFor(A.n), cB=colorFor(B.n);
-  const favA = p.chanceA>=0.5, F=favA?A:B, cF=favA?cA:cB, chance=favA?p.chanceA:1-p.chanceA, pF=(favA?p.pA:1-p.pA)*100;
-  const lo=p.lo90*100, hi=p.hi90*100, fLo=favA?lo:100-hi, fHi=favA?hi:100-lo;
   const antes = !(p.municipios_apurados>0);
+  const certo = !antes && ((p.chanceA>=.995 && p.lo90>.5) || (p.chanceA<=.005 && p.hi90<.5));
+  const favA = certo ? p.chanceA>=.5 : (A.n===FAV||B.n===FAV) ? A.n===FAV : p.chanceA>=.5, F=favA?A:B, cF=favA?cA:cB, chance=favA?p.chanceA:1-p.chanceA, pF=(favA?p.pA:1-p.pA)*100;
+  const lo=p.lo90*100, hi=p.hi90*100, fLo=favA?lo:100-hi, fHi=favA?hi:100-lo;
   const hora = p.calculado ? new Date(p.calculado).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"}) : "";
   const arco = 267, gauge = MOSTRAR_CHANCE
     ? `<div class="dgauge"><svg viewBox="0 0 200 112" aria-hidden="true"><path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14" stroke-linecap="round"/>
         <path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="${cF}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${arco}" stroke-dashoffset="${(arco*(1-chance)).toFixed(1)}"/></svg>
-        <div class="c"><b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b><small>chance de vitória · ${esc(primeiroNome(F))}</small></div></div>` : "";
+        <div class="c"><b style="color:${corTxt(cF)}">${certo?">99%":Math.round(chance*100)+"%"}</b><small>${certo?"praticamente eleito":"chance de vitória"} · ${esc(primeiroNome(F))}</small></div></div>` : "";
   const outro = favA?B:A;
-  box.innerHTML = `<h3>Previsão do resultado final<span class="sp"></span><span class="dpill">modelo</span></h3>${gauge}
+  box.innerHTML = `<h3>${certo?"Vitória praticamente garantida":"Previsão do resultado final"}<span class="sp"></span><span class="dpill">modelo</span></h3>${gauge}
     <div class="drow3 num"><span>Projeção<b style="color:${corTxt(cF)}">${fmt1(pF)}%</b></span><span>Faixa 90%<b>${fmt1(fLo)}–${fmt1(fHi)}</b></span><span>${esc(primeiroNome(outro))}<b>${MOSTRAR_CHANCE?Math.round((1-chance)*100)+"%":fmt1(100-pF)+"%"}</b></span></div>
     <div class="dbandw"><div class="dband" role="img" aria-label="Faixa provável para ${esc(A.nm)}: ${fmt1(lo)}% a ${fmt1(hi)}%"><i style="width:${lo}%;background:${cA}"></i><i class="fx" style="width:${hi-lo}%;background-color:color-mix(in srgb,${cA} 50%,${cB})"></i><i style="flex:1;background:${cB}"></i></div></div>
-    <div class="dprevsub">${antes?"Antes da apuração: pesquisas, com mais peso a quem acertou o 1º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
+    <div class="dprevsub">${certo?`Mais de 99,5% de chance e toda a faixa provável acima de 50% · falta o TSE confirmar matematicamente`:antes?"Antes da apuração: pesquisas, com mais peso a quem acertou o 1º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
   m.hidden=false;
-  m.innerHTML = `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
+  m.innerHTML = certo ? `<b style="color:${corTxt(cF)}">${esc(nomeCurto(F))}</b> praticamente eleito · chance acima de 99%` : `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
   // votos dos eliminados
   const t=Math.round(p.t*100), tA=p.A===a.n?t:100-t;
   const tr = `<span>Votos de Cury, Renan, Caiado, Zema e outros${antes?" · pelas pesquisas":""}</span>

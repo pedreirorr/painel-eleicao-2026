@@ -730,7 +730,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261024-102946"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261024-104028"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1023,20 +1023,28 @@ async function load(){
   $("refresh").disabled=true;
   try{
     const ele = state.ele;
-    let br;
-    try{ br = parse(await getTSE(dataUrl("br",ele))); }
-    catch(err){
-      if((err.status===404||err.status===403) && !state.br){ // antes da divulgação; no meio da apuração vira falha comum e mantém os dados
-        showNotice(`<b>A eleição está configurada, mas o TSE ainda não divulgou números.</b><p>A divulgação começa após as 17h de Brasília. O painel continua tentando a cada ${REFRESH_S} segundos.</p>${state.env==="oficial"?`<div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`:""}`);
-        return;
+    let br, brErr=null;
+    try{ br = parse(await getTSE(dataUrl("br",ele))); }catch(err){ brErr=err; }
+    const res = await Promise.allSettled(UFS.map(uf=>getTSE(dataUrl(uf,ele)).then(parse)));
+    const ufsOk = res.every(r=>r.status==="fulfilled");
+    res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
+    if(brErr){
+      // arquivo nacional fora do ar: segue pela soma dos 27 estados + exterior, se todos responderam
+      const modelo = state.br || state.ufs.sp;
+      const soma = ufsOk && modelo ? somaEstados({...modelo, s:{...modelo.s, st:"-1"}}, state.ufs) : null;
+      if(!soma){
+        if((brErr.status===404||brErr.status===403) && !state.br){ // antes da divulgação; no meio da apuração vira falha comum e mantém os dados
+          showNotice(`<b>A eleição está configurada, mas o TSE ainda não divulgou números.</b><p>A divulgação começa após as 17h de Brasília. O painel continua tentando a cada ${REFRESH_S} segundos.</p>${state.env==="oficial"?`<div class="controls"><button type="button" onclick="switchEnv('sim')">Ver o simulado do TSE enquanto isso</button></div>`:""}`);
+          return;
+        }
+        throw brErr;
       }
-      throw err;
+      br = {...modelo, s:{...modelo.s, st:"-1"}};
+    }else{
+      state.brArquivoSig = assinatura(br.raw);
+      state.brArquivo = { pst: br.pst, ht: br.ht||br.hg };
     }
     showNotice(null);
-    const res = await Promise.allSettled(UFS.map(uf=>getTSE(dataUrl(uf,ele)).then(parse)));
-    res.forEach((r,i)=>{ if(r.status==="fulfilled") state.ufs[UFS[i]]=r.value; });
-    state.brArquivoSig = assinatura(br.raw);
-    state.brArquivo = { pst: br.pst, ht: br.ht||br.hg };
     const soma = somaEstados(br, state.ufs);
     if(soma) br = soma;
     br.cands.forEach(c=>colorFor(c.n));
@@ -1165,7 +1173,7 @@ function renderStatus(){
   $("pst").innerHTML = `${pf(b.pst)}<small>${nf.format(num(s.st))} de ${nf.format(num(s.ts))} seções</small>`;
   $("pbar").style.width = Math.min(100,b.pst)+"%";
   const final = b.tf==="s" && b.pst>=100;
-  $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}${b.agregado?` · somado dos estados; o total nacional do TSE ainda mostra ${pf(state.brArquivo?.pst)} (atualização das ${state.brArquivo?.ht||"—"}), atrasado em relação aos estados`:""}`;
+  $("updated").textContent = `Última totalização: ${b.dt||b.dg} às ${b.ht||b.hg}${final?" · totalização concluída":""}${b.agregado?(state.brArquivo?` · somado dos estados; o total nacional do TSE ainda mostra ${pf(state.brArquivo.pst)} (atualização das ${state.brArquivo.ht||"—"}), atrasado em relação aos estados`:" · somado dos estados (o arquivo nacional do TSE não respondeu)"):""}`;
   document.title = `${pf(b.pst)} apurado · Presidente 2026`;
   mostraLider("lead", b.cands, c=>colorFor(c.n));
 }

@@ -111,7 +111,9 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#03140a
 .prev-bar i{position:absolute;top:0;bottom:0}
 .prev-bar .faixa{background:repeating-linear-gradient(45deg,rgba(255,255,255,.35) 0 4px,transparent 4px 8px)}
 .prev-bar .meio{position:absolute;left:50%;top:-3px;bottom:-3px;border-left:2px solid var(--surface)}
-.prev-chance{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;flex-wrap:wrap}
+.prev-chance{margin-top:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px 10px;font-size:.92rem;align-items:baseline}
+.prev-chance small{grid-column:1/-1;color:var(--muted);font-size:.8rem}
+.prev-chance span{min-width:0;overflow-wrap:anywhere}.prev-chance .r{text-align:right}
 .prev-chance b{font:700 1.15rem var(--display)}
 .como summary{cursor:pointer;color:var(--muted);font-size:.85rem}
 .como p{margin:.5rem 0 0;max-width:75ch;font-size:.88rem;color:var(--muted)}
@@ -322,8 +324,8 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
 .ddifm b{color:var(--ink)}
 .dc{display:flex;align-items:center;gap:16px;min-width:0}
 .dc.r{flex-direction:row-reverse;text-align:right}
-.dc.fav.lead{--k:1.16}.dc.fav.lead .dfig img{box-shadow:0 0 0 3px var(--c),0 0 22px color-mix(in srgb,var(--c) 55%,transparent)}
-.dc.sombra{--k:.84}.dc.sombra .dfig img{filter:grayscale(.55);opacity:.8}
+.dc.dlider{--k:1.16}.dc.dlider .dfig img{box-shadow:0 0 0 3px var(--c),0 0 22px color-mix(in srgb,var(--c) 55%,transparent)}
+.dc.dsombra{--k:.84}.dc.dsombra .dfig img{filter:grayscale(.55);opacity:.8}
 .dfig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:96px}
 .dfoto{width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:50% 20%;background:var(--line);box-shadow:0 0 0 3px var(--c),0 0 0 6px color-mix(in srgb,var(--c) 22%,transparent);display:grid;place-items:center;font:800 20px var(--body);color:var(--ink)}
 .dfig figcaption{font:600 11.5px/1.25 var(--body);color:var(--muted);text-align:center;max-width:96px;overflow-wrap:anywhere}
@@ -405,8 +407,8 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
   .dfig{width:64px;gap:4px}
   .dfoto{width:48px;height:48px;font-size:15px;box-shadow:0 0 0 2px var(--c),0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent)}
   .dfig figcaption{font-size:10.5px;max-width:64px}
-  .dpc{font-size:calc(var(--k,1)*clamp(24px,calc((100cqi - 150px)/7.6),52px))}
-  .dc.fav.lead{--k:1}.dc.sombra{--k:.78}
+  .dpc{font-size:calc(var(--k,1)*clamp(20px,calc((100cqi - 102px)/10),52px))}
+  .dc.dlider{--k:1}.dc.dsombra{--k:.86}
 }
 /* computador/TV com tela grande: tudo numa tela, sem rolagem */
 @media (min-width:1181px) and (min-height:701px){
@@ -718,7 +720,7 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
     O painel atualiza sozinho a cada 30 segundos. Percentuais calculados sobre votos válidos, como faz o TSE.
     Pesquisas: levantamentos registrados no TSE e compilados na <a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Brazilian_presidential_election" target="_blank" rel="noopener">Wikipedia</a> (abril a 3 de outubro de 2026),
     convertidos para votos válidos excluindo brancos, nulos e indecisos.
-    A curva de evolução usa o histórico gravado pelo apuracao_servidor.py quando o painel é aberto por ele; caso contrário, usa as leituras feitas neste navegador.
+    A curva de evolução usa o histórico gravado no GitHub durante a apuração, somado às leituras feitas neste navegador.
   </footer>
 </div>
 
@@ -733,7 +735,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261024-221808"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261024-222935"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -2061,19 +2063,19 @@ function renderPrev(){
     : `Atualizada às ${hora}, com ${pf((p.pst_tse??0))} das seções apuradas e ${nf.format(p.municipios_apurados)} municípios com votos.`;
   const fmt1 = x => x.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
   const mi = v => (v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mi";
-  const chance = MOSTRAR_CHANCE ? `<div class="prev-chance"><span>Chance de vitória: <b style="color:${cA}">${Math.round(p.chanceA*100)}%</b> ${esc(nomeBonito(A.nm))}</span><span><b style="color:${cB}">${Math.round((1-p.chanceA)*100)}%</b> ${esc(nomeBonito(B.nm))}</span></div>` : "";
+  const chance = MOSTRAR_CHANCE ? `<div class="prev-chance"><small>Chance de vitória</small><span><b style="color:${cA}">${Math.round(p.chanceA*100)}%</b> ${esc(nomeCurto(A))}</span><span class="r">${esc(nomeCurto(B))} <b style="color:${cB}">${Math.round((1-p.chanceA)*100)}%</b></span></div>` : "";
   $("prevCorpo").innerHTML = `<div class="prev-nomes num">
-      <div><b style="color:${cA}">${esc(nomeBonito(A.nm))}</b><span class="pc">${fmt1(pA)}%</span><small>${mi(p.votosA)} de votos projetados</small></div>
-      <div class="r"><b style="color:${cB}">${esc(nomeBonito(B.nm))}</b><span class="pc">${fmt1(pB)}%</span><small>${mi(p.votosB)} de votos projetados</small></div>
+      <div><b style="color:${cA}">${esc(nomeCurto(A))}</b><span class="pc">${fmt1(pA)}%</span><small>${mi(p.votosA)} de votos projetados</small></div>
+      <div class="r"><b style="color:${cB}">${esc(nomeCurto(B))}</b><span class="pc">${fmt1(pB)}%</span><small>${mi(p.votosB)} de votos projetados</small></div>
     </div>
     <div class="prev-bar" role="img" aria-label="Projeção: ${esc(A.nm)} ${fmt1(pA)}%, faixa de ${fmt1(lo)}% a ${fmt1(hi)}%">
       <i style="left:0;width:${lo}%;background:${cA}"></i><i class="faixa" style="left:${lo}%;width:${hi-lo}%;background-color:color-mix(in srgb,${cA} 50%,${cB})"></i><i style="left:${hi}%;right:0;background:${cB}"></i><span class="meio"></span>
     </div>
-    <div class="meta num" style="display:block;font-size:.82rem">Faixa provável (90%) para ${esc(nomeBonito(A.nm))}: ${fmt1(lo)}% a ${fmt1(hi)}% · área listrada = incerteza · traço = 50%</div>
+    <div class="meta num" style="display:block;font-size:.82rem">Faixa provável (90%) para ${esc(nomeCurto(A))}: ${fmt1(lo)}% a ${fmt1(hi)}% · área listrada = incerteza · traço = 50%</div>
     ${chance}`;
   $("prevTransf").innerHTML = antes
     ? `As pesquisas indicam que esses votos se dividem quase igualmente. A estimativa com os votos reais aparece quando os primeiros municípios forem apurados.`
-    : `Com os municípios já apurados, o modelo estima que cerca de <b>${Math.round(p.t*100)}%</b> dos eleitores de Cury, Renan, Caiado, Zema e demais que votaram em alguém no 2º turno foram para <b style="color:${cA}">${esc(nomeBonito(A.nm))}</b> e <b>${100-Math.round(p.t*100)}%</b> para <b style="color:${cB}">${esc(nomeBonito(B.nm))}</b> (margem de ±${Math.round(p.se_t*196)} pontos).`;
+    : `Com os municípios já apurados, o modelo estima que cerca de <b>${Math.round(p.t*100)}%</b> dos eleitores de Cury, Renan, Caiado, Zema e demais que votaram em alguém no 2º turno foram para <b style="color:${cA}">${esc(nomeCurto(A))}</b> e <b>${100-Math.round(p.t*100)}%</b> para <b style="color:${cB}">${esc(nomeCurto(B))}</b> (margem de ±${Math.round(p.se_t*196)} pontos).`;
   renderPrevGraf(cA, cB);
 }
 function renderPrevGraf(cA, cB){
@@ -2125,7 +2127,7 @@ function renderDash(){
   $("dSub").textContent = started ? `TSE · ${final?"totalização concluída":"totalização às "+(br.ht||br.hg||"").slice(0,5)}` : "Dados oficiais do TSE";
   // placar
   const flaLidera = started && a.vap!==b.vap && (a.vap>b.vap?a:b).n===FAV;
-  const lado = (c,cor,r) => `<div class="dc${r?" r":""}${c.n===FAV?" fav":""}${flaLidera?(c.n===FAV?" lead":" sombra"):""}" style="--c:${cor}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
+  const lado = (c,cor,r) => `<div class="dc${r?" r":""}${c.n===FAV?" fav":""}${flaLidera?(c.n===FAV?" dlider":" dsombra"):""}" style="--c:${cor}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
       <div class="dnums"><div class="dpc" style="color:${corTxt(cor)}">${started?pf(c.pv):"—"}</div><div class="dvt">${nf.format(c.vap)} votos</div></div></div>`;
   const dif = Math.abs(a.vap-b.vap), lider = a.vap>=b.vap ? a : b, fv=[a,b].find(c=>c.n===FAV);
   const quem = !dif ? "empate" : fv ? esc(primeiroNome(fv))+(lider===fv?" à frente":" atrás") : esc(primeiroNome(lider))+" à frente";
@@ -2147,7 +2149,7 @@ function renderDashPrev(a,b,ca,cb,final){
   if(final){
     const v=[a,b].sort((x,y)=>y.vap-x.vap)[0], cv=colorFor(v.n);
     box.innerHTML=`<h3>Resultado final<span class="sp"></span><span class="dpill">TSE</span></h3><div class="dvazio" style="margin:auto"><b style="display:block;font:800 30px var(--body);color:${corTxt(cv)}">${esc(nomeCurto(v))}</b>venceu o 2º turno com ${pf(v.pv)} dos votos válidos · totalização concluída</div>`;
-    m.hidden=false; m.innerHTML=`Resultado final: <b style="color:${corTxt(cv)}">${esc(nomeCurto(v))} venceu</b> com ${pf(v.pv)}`;
+    m.hidden=false; m.innerHTML=`<span>Resultado final: <b style="color:${corTxt(cv)}">${esc(primeiroNome(v))} venceu</b> com ${pf(v.pv)}</span>`;
     $("dTrans").innerHTML=$("dTransM").innerHTML=""; return;
   }
   // eleito matematicamente: a vantagem já supera todos os eleitores das seções que faltam (ou o TSE já marcou "eleito")
@@ -2158,7 +2160,7 @@ function renderDashPrev(a,b,ca,cb,final){
       <div class="dgauge"><svg viewBox="0 0 200 112" aria-hidden="true"><path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="${cv}" stroke-width="14" stroke-linecap="round"/></svg>
         <div class="c"><b style="color:${corTxt(cv)}">100%</b><small>${esc(nomeCurto(lid))} eleito</small></div></div>
       <div class="dprevsub">Vantagem de ${miOu(dif)} votos, maior que os ${miOu(falta)} eleitores das seções que faltam apurar: não há mais virada possível.</div>`;
-    m.hidden=false; m.innerHTML=`<b style="color:${corTxt(cv)}">${esc(nomeCurto(lid))}</b> eleito matematicamente · ${pf(state.br.pst)} apurado`;
+    m.hidden=false; m.innerHTML=`<span><b style="color:${corTxt(cv)}">${esc(primeiroNome(lid))} eleito matematicamente</b> · ${pf(state.br.pst)} apurado</span>`;
     if(!temP){ $("dTrans").innerHTML=$("dTransM").innerHTML=""; }
     state.dKpiPrev = {chance:100, F:primeiroNome(lid), cF:cv, pF:pL, fLo:pL, fHi:pL, outro:primeiroNome(out)};
     return;
@@ -2184,7 +2186,7 @@ function renderDashPrev(a,b,ca,cb,final){
     <div class="dbandw"><div class="dband" role="img" aria-label="Faixa provável para ${esc(A.nm)}: ${fmt1(lo)}% a ${fmt1(hi)}%"><i style="width:${lo}%;background:${cA}"></i><i class="fx" style="width:${hi-lo}%;background-color:color-mix(in srgb,${cA} 50%,${cB})"></i><i style="flex:1;background:${cB}"></i></div></div>
     <div class="dprevsub">${certo?`Mais de 99,5% de chance e toda a faixa provável acima de 50% · falta o TSE confirmar matematicamente`:antes?"Antes da apuração: pesquisas, com mais peso a quem acertou o 1º turno":`Atualizada às ${hora} · ${nf.format(p.municipios_apurados)} municípios com votos`}</div>`;
   m.hidden=false;
-  m.innerHTML = certo ? `<b style="color:${corTxt(cF)}">${esc(nomeCurto(F))}</b> praticamente eleito · chance acima de 99%` : `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
+  m.innerHTML = certo ? `<span><b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} praticamente eleito</b> · chance acima de 99%</span>` : `Previsão final: <b style="color:${corTxt(cF)}">${esc(primeiroNome(F))} ${fmt1(pF)}%</b>${MOSTRAR_CHANCE?` · chance <b style="color:${corTxt(cF)}">${Math.round(chance*100)}%</b>`:""}`;
   // votos dos eliminados
   const t=Math.round(p.t*100), tA=p.A===a.n?t:100-t;
   const tr = `<span>Votos de Cury, Renan, Caiado, Zema e outros${antes?" · pelas pesquisas":""}</span>

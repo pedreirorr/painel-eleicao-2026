@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from apuracao_servidor import BASE, get_json, get_resultado, inteiro, UFS, log
 import modelo
 
-PESQUISAS_A = 0.5104   # média das pesquisas pós-1º turno (última de cada instituto): parcela de A nos válidos
+PESQUISAS_A = 0.5103   # média das pesquisas pós-1º turno (última de cada um dos 17 institutos, até 22/10): parcela de A nos válidos
 
 
 class Coletor:

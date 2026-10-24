@@ -34,6 +34,18 @@ def primeiro_turno_de(cd2):
     return None
 
 
+def eleicao_forcada(cd):
+    """Para testes: usa a eleição de código cd (variável ELEICAO) em vez da escolhida pela data."""
+    from apuracao_servidor import get_json
+    cfg = get_json(BASE + "comum/config/ele-c.json")
+    for pl in cfg.get("pl", []):
+        for e in pl.get("e", []):
+            if str(e.get("cd")) == str(cd):
+                d, m, a = (int(x) for x in pl["dt"].split("/"))
+                return (datetime.date(a, m, d), e["cd"], pl["c"], e.get("t"))
+    return None
+
+
 def envia_previsao(p):
     import urllib.request
     if not PREVISAO_TOKEN:
@@ -68,7 +80,7 @@ def main():
     while time.time() < fim:
         try:
             if ele is None:
-                ele = descobrir_eleicao()
+                ele = eleicao_forcada(os.environ["ELEICAO"]) if os.environ.get("ELEICAO") else descobrir_eleicao()
                 if ele:
                     log(f"Eleição {ele[1]} ({ele[3]}º turno, {ele[0]:%d/%m/%Y})")
             if ele:

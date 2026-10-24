@@ -8,6 +8,9 @@ on:
       horas:
         description: "Quanto tempo rodar (máx. 5.8)"
         default: "5.8"
+      eleicao:
+        description: "Só para teste: código da eleição (vazio = escolhe pela data)"
+        default: ""
   schedule:
     # 16h40 de Brasília (19h40 UTC) nos dias de votação: 1º turno 04/10 e 2º turno 25/10
     - cron: "40 19 4,25 10 *"
@@ -47,6 +50,7 @@ jobs:
           DADOS_DIR: dados
           HORAS: ${{ inputs.horas || '5.8' }}
           PREVISAO_TOKEN: ${{ secrets.PREVISAO_TOKEN }}
+          ELEICAO: ${{ inputs.eleicao || '' }}
           PYTHONUNBUFFERED: "1"
         run: |
           set +e

@@ -617,8 +617,8 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
         <div class="meta" id="histSrc"></div>
       </div>
       <div class="controls" role="group" aria-label="Eixo horizontal">
-        <button type="button" id="axTime" class="seg on">Por horário</button>
-        <button type="button" id="axPct" class="seg">Por % apurado</button>
+        <button type="button" id="axTime" class="seg">Por horário</button>
+        <button type="button" id="axPct" class="seg on">Por % apurado</button>
       </div>
     </div>
     <div id="chart"></div>
@@ -743,7 +743,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261025-211442"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261025-211939"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1315,7 +1315,7 @@ function renderChart(){
       ? `Gravado neste navegador · ${all.length} leituras. Para não perder pontos com o painel fechado, rode o apuracao_servidor.py.`
       : `Gravado neste navegador desde que você abriu a página · ${all.length} leituras. Deixe a página aberta para acompanhar a curva completa.`;
   const top = state.br.cands.slice(0,4);
-  const byTime = state.axis!=="pct";
+  const byTime = state.axis==="time";
   if(h.length<2){
     $("chart").innerHTML = `<p class="meta" style="margin:0">${(state.hist||[]).some(hasVotes) ? "Aguardando a próxima atualização do TSE para desenhar a curva." : "A curva começa quando o TSE divulgar a segunda atualização com votos."}</p>`;
     $("marginChart").innerHTML = ""; renderBoletins(); return;
@@ -1339,7 +1339,8 @@ function renderChart(){
   let sobre="";
   if(turno2() && state.hist1?.length){
     const dia = h[h.length-1].dt;
-    const xv1 = p => byTime ? ptTime({...p, dt:dia}) : p.pst;
+    const desloc = state.ele?.cd==="6258" ? 120*60e3 : 0; // 2º turno de 2026: votação prorrogada até 19h
+    const xv1 = p => byTime ? ptTime({...p, dt:dia}) + desloc : p.pst;
     (dupla()||[]).forEach(c=>{ const pts=state.hist1.filter(p=>p.cand?.[c.n] && xv1(p)>=x0 && xv1(p)<=x1).map(p=>x(xv1(p)).toFixed(1)+","+y(p.cand[c.n][1]).toFixed(1));
       if(pts.length>1) sobre+=`<polyline fill="none" stroke="${colorFor(c.n)}" stroke-width="1.6" stroke-opacity=".7" stroke-dasharray="3 4" points="${pts.join(" ")}"><title>${esc(c.nm)} no 1º turno</title></polyline>`; });
   }
@@ -1350,14 +1351,16 @@ function renderChart(){
     if(!pts.length) return "";
     const end=pts[pts.length-1], col=colorFor(c.n);
     labels.push({y:end[1],c,v:end[2].cand[c.n][1]});
-    return `<polyline fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" points="${pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}"/>
+    // no eixo de horário, interrompe a linha em pausas de mais de 30 min sem dados
+    const trechos=[[]]; pts.forEach((p,i)=>{ if(byTime && i && xv(p[2])-xv(pts[i-1][2])>30*60e3) trechos.push([]); trechos[trechos.length-1].push(p); });
+    return trechos.map(t=>`<polyline fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" points="${t.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")}"/>`).join("")+`
             <circle cx="${end[0]}" cy="${end[1]}" r="4" fill="${col}"/>`;
   }).join("");
   labels.sort((a,b)=>a.y-b.y);
   for(let i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<14) labels[i].y=labels[i-1].y+14;
   const lab=labels.map(l=>`<text x="${W-R+10}" y="${l.y+4}" style="fill:${colorFor(l.c.n)};font-weight:600">${esc(shortName(l.c.nm))} ${l.v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}%</text>`).join("");
   $("chart").innerHTML = `<div class="tablewrap"><svg class="chart" style="min-width:560px" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução do percentual de votos válidos durante a apuração">${g}${lines}${lab}</svg></div>
-    <div class="legend">${usePolls?"<span>Linhas pontilhadas = média das pesquisas</span>":""}${turno2()&&state.hist1?.length?"<span>Tracejado fino = o mesmo candidato no 1º turno, no mesmo horário/% apurado</span>":""}<span>Eixo horizontal: ${byTime?"horário da totalização do TSE":"% das seções totalizadas"}</span></div>`;
+    <div class="legend">${usePolls?"<span>Linhas pontilhadas = média das pesquisas</span>":""}${turno2()&&state.hist1?.length?`<span>Tracejado fino = o mesmo candidato no 1º turno, no mesmo ${byTime?(state.ele?.cd==="6258"?"momento da apuração (2 h antes, pela prorrogação da votação)":"horário"):"% apurado"}</span>`:""}<span>Eixo horizontal: ${byTime?"horário da totalização do TSE":"% das seções totalizadas"}</span></div>`;
   renderMargin(h,byTime,xv);
   renderBoletins();
 }

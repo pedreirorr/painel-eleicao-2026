@@ -489,6 +489,17 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
   .dmais{font-size:16px}
 }
 #dSub.daviso{color:#fbbf24;font-weight:600}
+.dfig{position:relative}
+.demo{position:absolute;top:-6px;right:8px;font-size:22px;line-height:1;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.demo.festa{animation:dpula 1s ease-in-out infinite}
+.demo.choro{right:auto;left:8px}
+.demo.choro i{position:absolute;left:5px;top:16px;width:5px;height:7px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#60a5fa;animation:dlagrima 1.6s ease-in infinite}
+.dc.dlider .dfig img{animation:dbrilho 1.8s ease-in-out infinite}
+@keyframes dpula{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-7px) rotate(8deg)}}
+@keyframes dlagrima{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(22px);opacity:0}}
+@keyframes dbrilho{0%,100%{box-shadow:0 0 0 3px var(--c),0 0 10px color-mix(in srgb,var(--c) 40%,transparent)}50%{box-shadow:0 0 0 3px var(--c),0 0 28px color-mix(in srgb,var(--c) 85%,transparent)}}
+@container (max-width:660px){.demo{font-size:17px;top:-4px;right:2px}.demo.choro{left:2px}.demo.choro i{left:4px;top:12px}}
+@media (prefers-reduced-motion:reduce){.demo,.demo i,.dc.dlider .dfig img{animation:none}}
 .dfalta{display:flex;flex-direction:column;gap:9px;margin:auto 0}
 .dfrow{display:grid;grid-template-columns:92px minmax(40px,1fr) 52px 92px;align-items:center;gap:8px;font-size:13px}
 .dfrow .n{color:var(--muted);white-space:nowrap}
@@ -752,7 +763,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261025-225703"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261025-231356"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -2216,7 +2227,7 @@ function renderDash(){
   if(prorrogada) $("dSub").textContent = matchMedia("(max-width:760px)").matches ? "Votação prorrogada até 19h" : "Votação prorrogada até 19h · TSE retoma a divulgação depois";
   // placar
   const flaLidera = started && a.vap!==b.vap && (a.vap>b.vap?a:b).n===FAV;
-  const lado = (c,cor,r) => `<div class="dc${r?" r":""}${c.n===FAV?" fav":""}${flaLidera?(c.n===FAV?" dlider":" dsombra"):""}" style="--c:${cor}"><figure class="dfig">${fotoDash(c)}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
+  const lado = (c,cor,r) => `<div class="dc${r?" r":""}${c.n===FAV?" fav":""}${flaLidera?(c.n===FAV?" dlider":" dsombra"):""}" style="--c:${cor}"><figure class="dfig">${fotoDash(c)}${flaLidera?(c.n===FAV?'<span class="demo festa" aria-hidden="true">🎉</span>':'<span class="demo choro" aria-hidden="true">😢<i></i></span>'):""}<figcaption>${esc(nomeCurto(c))}<small>${esc(c.sg)} · ${esc(c.n)}</small></figcaption></figure>
       <div class="dnums"><div class="dpc" style="color:${corTxt(cor)}">${started?pf(c.pv):"—"}</div><div class="dvt">${nf.format(c.vap)} votos</div></div></div>`;
   const dif = Math.abs(a.vap-b.vap), lider = a.vap>=b.vap ? a : b, fv=[a,b].find(c=>c.n===FAV);
   const quem = !dif ? "empate" : fv ? esc(primeiroNome(fv))+(lider===fv?" à frente":" atrás") : esc(primeiroNome(lider))+" à frente";

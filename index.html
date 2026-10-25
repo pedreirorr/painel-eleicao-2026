@@ -489,6 +489,13 @@ body.t2 .wrap>header,body.t2 .toolbar,body.t2 #viewBR>.status,body.t2 #viewBR>.g
   .dmais{font-size:16px}
 }
 #dSub.daviso{color:#fbbf24;font-weight:600}
+.dfalta{display:flex;flex-direction:column;gap:9px;margin:auto 0}
+.dfrow{display:grid;grid-template-columns:92px minmax(40px,1fr) 52px 92px;align-items:center;gap:8px;font-size:13px}
+.dfrow .n{color:var(--muted);white-space:nowrap}
+.dfrow b{text-align:right;font-weight:700}
+.dfrow .l{text-align:right;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dfbar{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.dfbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
 #dActs #refresh{display:none} /* atualização é automática; sem botão para forçar */
 #dActs #turno{display:none} /* 2º turno: sem seletor para o 1º turno */
 .dtoast{position:fixed;left:50%;top:14px;transform:translate(-50%,-140%);z-index:100;width:max-content;max-width:calc(100vw - 32px);background:#14532d;color:#ecfdf5;border:1px solid #22c55e;border-radius:14px;padding:10px 16px;font:600 14px/1.35 var(--body);box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .4s;text-align:center}
@@ -745,7 +752,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261025-221416"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261025-225703"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -2077,6 +2084,7 @@ function avisoTSE(tse){
 /* ---------- previsão do 2º turno (calculada no gravador do GitHub e repassada pelo contador) ----------
    Mostra a chance de vitória só se MOSTRAR_CHANCE for verdadeiro (decidido pelo teste do modelo). */
 const MOSTRAR_CHANCE = false;
+const MOSTRAR_PREVISAO = false; // sem projeção: o quadro mostra quanto falta apurar por região
 const FAV = "22"; // candidato em destaque no painel (Flávio Bolsonaro)
 const PREV_URL = "https://painel-online.pedro0-75c.workers.dev/previsao";
 state.prevHist = [];
@@ -2102,7 +2110,7 @@ setInterval(()=>{ if(Date.now()-(state.wsAt||0)>60e3) carregaPrev(true); }, 60e3
 function renderPrev(){
   const sec=$("prev"), p=state.prev;
   const final = state.br?.tf==="s";
-  sec.hidden = !(turno2() && p && state.br && !final);
+  sec.hidden = !(MOSTRAR_PREVISAO && turno2() && p && state.br && !final);
   if(sec.hidden) return;
   const cand = n => state.br.cands.find(c=>c.n===n) || {n, nm:n};
   const A=cand(p.A), B=cand(p.B), cA=colorFor(p.A), cB=colorFor(p.B);
@@ -2225,6 +2233,23 @@ function renderDash(){
   renderDashEstados(a,b);
   renderDashCurva();
 }
+// quanto falta apurar em cada região, com quem lidera em cada uma (dados oficiais do TSE)
+const REGIOES = [["Sudeste","es mg rj sp"],["Nordeste","al ba ce ma pb pe pi rn se"],["Sul","pr rs sc"],["Norte","ac am ap pa ro rr to"],["Centro-Oeste","df go ms mt"],["Exterior","zz"]];
+function renderFalta(a,b,box,m){
+  const linhas = REGIOES.map(([nome,l])=>{
+    const ds=l.split(" ").map(u=>state.ufs[u]).filter(Boolean);
+    const st=ds.reduce((t,d)=>t+num(d.s.st),0), ts=ds.reduce((t,d)=>t+num(d.s.ts),0);
+    const va=ds.reduce((t,d)=>t+(d.cands.find(c=>c.n===a.n)?.vap||0),0), vb=ds.reduce((t,d)=>t+(d.cands.find(c=>c.n===b.n)?.vap||0),0);
+    const pct=ts?st/ts*100:0, lid=va>=vb?a:b, pl=va+vb?Math.max(va,vb)/(va+vb)*100:0;
+    return {nome,pct,lid,pl,tem:va+vb>0};
+  });
+  const row = r => `<div class="dfrow"><span class="n">${r.nome}</span><span class="dfbar"><i style="width:${Math.min(100,r.pct).toFixed(1)}%"></i></span><b class="num">${pf(r.pct)}</b><span class="l" style="color:${corTxt(colorFor(r.lid.n))}">${r.tem?esc(primeiroNome(r.lid))+" "+fmt1(r.pl)+"%":"—"}</span></div>`;
+  box.innerHTML = `<h3>Quanto falta apurar<span class="sp"></span><span class="dpill">TSE</span></h3><div class="dfalta">${linhas.map(row).join("")}</div>
+    <div class="dprevsub">Faltam ${pf(100-state.br.pst)} das seções do país · barra = seções apuradas na região</div>`;
+  const se=linhas[0];
+  m.hidden=false; m.innerHTML=`<span>Faltam <b>${pf(100-state.br.pst)}</b> das seções · Sudeste <b>${pf(se.pct)}</b> apurado</span>`;
+  $("dTrans").innerHTML=$("dTransM").innerHTML="";
+}
 function renderDashPrev(a,b,ca,cb,final){
   const p=state.prev, box=$("dPrev"), m=$("dMPrev"); state.dKpiPrev=null;
   if(final){
@@ -2246,6 +2271,7 @@ function renderDashPrev(a,b,ca,cb,final){
     state.dKpiPrev = {chance:100, eleito:true, F:primeiroNome(lid), cF:cv, pF:pL, fLo:pL, fHi:pL, outro:primeiroNome(out)};
     return;
   }
+  if(!MOSTRAR_PREVISAO){ renderFalta(a,b,box,m); return; }
   if(!p || !(p.A===a.n||p.A===b.n)){
     box.innerHTML=`<h3>Previsão do resultado final<span class="sp"></span><span class="dpill">modelo</span></h3><div class="dvazio">A previsão aparece em instantes.</div>`;
     m.hidden=true; $("dTrans").innerHTML=$("dTransM").innerHTML=""; return;
@@ -2335,7 +2361,7 @@ function renderDashCurva(){
   if(!W || !H) return;
   if(h.length<2 || !state.br.cands.some(c=>c.vap>0)){ box.innerHTML=`<div class="dvazio" style="position:absolute;inset:0;display:grid;place-items:center">A curva começa com as primeiras atualizações do TSE, a partir das 17h.</div>`; return; }
   const sh = p => { const x=p.cand[a.n][0], y=p.cand[b.n][0]; return x+y ? x/(x+y)*100 : 50; };
-  const p=state.prev, temPrev = p && !(state.br.tf==="s") && (p.A===a.n||p.A===b.n);
+  const p=state.prev, temPrev = MOSTRAR_PREVISAO && p && !(state.br.tf==="s") && (p.A===a.n||p.A===b.n);
   const fim = temPrev ? (p.A===a.n ? p.pA*100 : 100-p.pA*100) : null;
   const lo = temPrev ? (p.A===a.n ? p.lo90*100 : 100-p.hi90*100) : null, hi = temPrev ? (p.A===a.n ? p.hi90*100 : 100-p.lo90*100) : null;
   let dev=4; h.forEach(q=>{ dev=Math.max(dev, Math.abs(sh(q)-50)+1); }); if(temPrev) dev=Math.max(dev, Math.abs(lo-50)+1, Math.abs(hi-50)+1);

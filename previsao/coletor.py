@@ -18,6 +18,7 @@ import modelo
 # Ideia −1,66, Datafolha −2,23, Quaest −2,30, AtlasIntel −2,62, Real Time −3,45, MDA −4,16, Nexus −4,18, Indexa −4,44.
 # Média simples dos 17 institutos: 51,03%; ponderada pelo acerto: 50,71%.
 PESQUISAS_A = 0.5071
+LOTE = 800
 
 
 class Coletor:
@@ -32,6 +33,7 @@ class Coletor:
         self.A, self.B = sorted(tot, key=lambda n: -tot[n])[:2]
         modelo.configurar(self.A, self.B)
         self.base = modelo.preparar_base(raw)
+        self.eleitorado = {cd: r[ix["eleitorado"]] for cd, r in raw["mun"].items()}
         self.t0 = self._calibra_t0(PESQUISAS_A)
         self.status, self.atual = {}, {}
         log(f"Previsão: A={self.A}, B={self.B}, {len(self.base)} municípios, t0={self.t0:.3f}")
@@ -70,6 +72,12 @@ class Coletor:
                 chave = (st, m.get("ht"))
                 if st > 0 and self.status.get(cd) != chave:
                     mudou.append((uf, cd, st)); self.status[cd] = chave
+        # enxurrada de dados: no máximo LOTE municípios por ciclo, os de maior eleitorado primeiro,
+        # para a previsão sair a cada ~30 s em vez de esperar todos (os demais ficam para os próximos ciclos)
+        if len(mudou) > LOTE:
+            mudou.sort(key=lambda it: -self.eleitorado.get(it[1], 0))
+            for it in mudou[LOTE:]: self.status.pop(it[1], None)
+            mudou = mudou[:LOTE]
         if mudou:
             with ThreadPoolExecutor(48) as ex:
                 for it, r in zip(mudou, ex.map(lambda it: self._seguro(it), mudou)):

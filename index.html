@@ -6,6 +6,8 @@
 <title>Apuração Presidente 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>try{ const r=JSON.parse(sessionStorage.getItem("restaura")||"null"); if(r && Date.now()-r.t<120e3) document.documentElement.classList.add("recarga"); }catch{}</script>
+<style>html.recarga body{visibility:hidden}</style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: painel de apuração — faixa de status, placar de candidatos + totais, cartograma por UF e curva da apuração */
@@ -735,7 +737,7 @@ const UF_NAMES = {ac:"Acre",al:"Alagoas",am:"Amazonas",ap:"Amapá",ba:"Bahia",ce
 const TILE = {rr:[1,0],ap:[3,0],am:[1,1],pa:[2,1],ma:[3,1],ce:[4,1],rn:[5,1],ac:[0,2],ro:[1,2],to:[2,2],pi:[3,2],pe:[4,2],pb:[5,2],mt:[1,3],df:[2,3],ba:[3,3],se:[4,3],al:[5,3],ms:[1,4],go:[2,4],mg:[3,4],es:[4,4],sp:[2,5],rj:[3,5],pr:[2,6],sc:[2,7],rs:[1,8],zz:[5,8]};
 const PALETTE = ["#1f6fd1","#d1462f","#e3a21a","#7a4cc2","#1b9e77","#c2407e","#5b7083","#8c6d31","#2aa0b5","#6b8e23","#b5651d","#4b5bd6","#a33b8f","#3d8f5f","#9a7b4f"];
 const REFRESH_S = 30;
-const VERSAO = "20261024-230204"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
+const VERSAO = "20261025-194224"; // carimbada na publicação (publicar.sh); igual ao conteúdo de versao.txt
 
 /* ---------- pesquisas (1º turno, % do total; última coluna = brancos/nulos/indecisos) ---------- */
 // colunas: instituto, fim do campo, Lula 13, Flávio 22, Caiado 55, Zema 30, Renan 14, Cury 70, b/n/indecisos
@@ -1991,7 +1993,27 @@ document.addEventListener("visibilitychange",()=>{
 
 state.colors={...POLL_COLORS};
 renderPolls();
-init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); });
+init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); }).finally(restaura);
+// mostra a página assim que o placar estiver na tela (sem esperar o resto dos dados)
+(function espera(){ if(!$("dash").hidden || !document.documentElement.classList.contains("recarga")) return restaura(); setTimeout(espera, 50); })();
+function restaura(){
+  if(restaura.feito) return; restaura.feito=true;
+  let r=null; try{ r=JSON.parse(sessionStorage.getItem("restaura")||"null"); sessionStorage.removeItem("restaura"); }catch{}
+  const mostra=()=>document.documentElement.classList.remove("recarga");
+  if(!r || Date.now()-r.t>=120e3){ mostra(); return; }
+  try{
+    if(r.dtab) document.querySelector(`#dash .dtabs [data-dt="${r.dtab}"]`)?.click();
+    if(r.dmap) document.querySelector(`#dMapSeg [data-dm="${r.dmap}"]`)?.click();
+    // a altura da página ainda pode mudar (mapa, lista): repõe a rolagem algumas vezes, até a pessoa mexer
+    try{ history.scrollRestoration="manual"; }catch{}
+    let mexeu=false; const para=()=>{ mexeu=true; };
+    ["pointerdown","touchstart","wheel","keydown"].forEach(ev=>addEventListener(ev,para,{once:true,passive:true}));
+    const volta=()=>{ if(!mexeu && r.y) scrollTo(0, r.y); };
+    volta(); mostra();
+    [300,1000,2500].forEach(ms=>setTimeout(volta, ms));
+  }catch{ mostra(); }
+}
+setTimeout(()=>document.documentElement.classList.remove("recarga"), 6000); // garantia: nunca fica escondida
 
 /* ---------- versão nova publicada: todos os aparelhos recarregam sozinhos ----------
    A cada minuto (e ao voltar para a aba) lê versao.txt do site. Se mudou, recarrega mantendo a aba
@@ -1999,7 +2021,18 @@ init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); 
    Proteção contra repetição: no máximo uma tentativa por versão a cada 5 minutos. */
 (function versaoNova(){
   if(VERSAO==="dev" || !/^https?:$/.test(location.protocol)) return;
-  let checando=false;
+  let checando=false, pendente="", desde=0, mexeu=Date.now();
+  ["pointerdown","touchstart","wheel","keydown","scroll"].forEach(ev=>addEventListener(ev,()=>{ mexeu=Date.now(); },{passive:true,capture:true}));
+  // recarrega sem aviso: na hora se a aba estiver escondida; senão após 15 s sem toque/rolagem (no máximo 5 min depois)
+  setInterval(()=>{
+    if(!pendente) return;
+    const quieto = document.visibilityState==="hidden" || Date.now()-mexeu>15e3 || Date.now()-desde>300e3;
+    if(!quieto) return;
+    try{ sessionStorage.setItem("recarga-"+pendente, String(Date.now()));
+      sessionStorage.setItem("restaura", JSON.stringify({t:Date.now(), y:scrollY, dtab:state.dtab||"", dmap:state.dmap||""})); }catch{}
+    const u=new URL(location.href); u.searchParams.set("v", pendente); pendente="";
+    location.replace(u.toString());
+  }, 2000);
   async function checa(){
     if(checando) return; checando=true;
     try{
@@ -2008,10 +2041,7 @@ init().then(()=>{ const uf=HASH_UF[location.hash.slice(1)]; if(uf) setView(uf); 
       if(nova && nova!==VERSAO && /^[\w.-]{1,40}$/.test(nova)){
         let tentou=0; try{ tentou=+sessionStorage.getItem("recarga-"+nova)||0; }catch{}
         if(Date.now()-tentou < 5*60e3) return;
-        try{ sessionStorage.setItem("recarga-"+nova, String(Date.now())); }catch{}
-        showNotice("<b>O painel foi atualizado.</b><p>Carregando a versão nova…</p>");
-        const u=new URL(location.href); u.searchParams.set("v", nova);
-        setTimeout(()=>location.replace(u.toString()), 1500);
+        if(!pendente){ pendente=nova; desde=Date.now(); }
       }
     }catch{} finally{ checando=false; }
   }

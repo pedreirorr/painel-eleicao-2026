@@ -51,13 +51,13 @@ class Coletor:
         return get_json(f"{BASE}{self.ciclo}/{self.cd2}/dados/{uf}/{uf}-e{int(self.cd2):06d}-ab.json?nocache={int(time.time()*1000)}")
 
     def _muni(self, item):
-        uf, cd = item
+        uf, cd = item[0], item[1]
         d = get_resultado(self.url(uf, cd))
         votos = {c["n"]: inteiro(c["vap"]) for a in d["carg"][0]["agr"] for p in a["par"] for c in p["cand"]}
         s, e, v = d["s"], d["e"], d["v"]
         ts = max(1, inteiro(s["ts"]))
         return cd, {"a": votos.get(self.A, 0), "b": votos.get(self.B, 0), "est": inteiro(e.get("est")),
-                    "c": inteiro(e.get("c")), "vv": inteiro(v.get("vv")), "f": inteiro(s["st"]) / ts}
+                    "c": inteiro(e.get("c")), "vv": inteiro(v.get("vv")), "f": inteiro(s["st"]) / ts, "st": inteiro(s["st"])}
 
     def ciclo_(self):
         with ThreadPoolExecutor(8) as ex:
@@ -69,11 +69,14 @@ class Coletor:
                 cd, st = m["cdabr"], inteiro(m["s"]["st"])
                 chave = (st, m.get("ht"))
                 if st > 0 and self.status.get(cd) != chave:
-                    mudou.append((uf, cd)); self.status[cd] = chave
+                    mudou.append((uf, cd, st)); self.status[cd] = chave
         if mudou:
             with ThreadPoolExecutor(48) as ex:
-                for r in ex.map(lambda it: self._seguro(it), mudou):
-                    if r: self.atual[r[0]] = r[1]
+                for it, r in zip(mudou, ex.map(lambda it: self._seguro(it), mudou)):
+                    if not r: continue
+                    self.atual[r[0]] = r[1]
+                    # arquivo do município ainda atrás do acompanhamento (o TSE publica em tempos diferentes): relê no próximo ciclo
+                    if r[1]["st"] < it[2]: self.status.pop(it[1], None)
         p = modelo.projetar(self.base, self.atual, self.t0, sims=1500)
         p.update({"A": self.A, "B": self.B, "t0": self.t0, "municipios_apurados": len(self.atual),
                   "atualizados_no_ciclo": len(mudou), "calculado": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
